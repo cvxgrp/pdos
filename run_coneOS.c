@@ -14,7 +14,7 @@ int main(int argc, char **argv)
   Sol * sol = coneOS(d,k);
   printf("Total factorize + solve time %4f seconds\n",tocq());
   free_data(d,k);
-  free(sol->x);free(sol->z);free(sol->status);free(sol);
+  free(sol->x);free(sol->y);free(sol->status);free(sol);
   return 0;
 }
 
@@ -50,9 +50,9 @@ void read_in_data(FILE * fp,Data * d, Cone * k){
   fscanf(fp, "%i", &(d->CG_MAX_ITS)); 
 
   fscanf(fp, "%lf", &(d->ALPH));
-  fscanf(fp, "%lf", &(d->UNDET_TOL)); 
+  // fscanf(fp, "%lf", &(d->UNDET_TOL)); 
   fscanf(fp, "%lf", &(d->EPS_ABS)); 
-  fscanf(fp, "%lf", &(d->EPS_REL));
+  // fscanf(fp, "%lf", &(d->EPS_REL));
   fscanf(fp, "%lf", &(d->CG_TOL));
   
   int Anz;

@@ -1,11 +1,16 @@
 #include "linAlg.h"
 
-void scaleArray(double * a,double b,int len){
+void setAsScaledArray(double *x, const double * a,const double b,int len) {
+  int i;
+	for( i=0;i<len;i++ ) x[i] = b*a[i];
+}
+
+void scaleArray(double * a,const double b,int len){
 	int i;
 	for( i=0;i<len;i++) a[i]*=b;
 }
 
-double innerProd(double * x, double * y, int len){
+double innerProd(const double * x, const double * y, int len){
 	int i;
 	double ip = 0.0;
 	for ( i=0;i<len;i++){
@@ -14,28 +19,92 @@ double innerProd(double * x, double * y, int len){
 	return ip;
 }
 
-double calcNorm(double * v,int len){
+double calcNorm(const double * v,int len){
+	return sqrt(calcNormSq(v, len));
+}
+
+double calcNormSq(const double * v,int len){
 	int i;
-	double nm = 0.0;
+	double nmsq = 0.0;
 	for ( i=0;i<len;i++){
-		nm+=v[i]*v[i];
+		nmsq += v[i]*v[i];
 	}
-	return sqrt(nm);
+	return nmsq;
 }
 
 double calcPriResid(Data* d,Work * w){
 	double err = 0.0, tmp;
 	int i;
 	for ( i=0;i<w->l;i++){
-		tmp = (w->uv[i] - w->uv_t[i]);
+		tmp = (w->z_half[i] - w->z[i]);
 		err += tmp * tmp;
 	}
 	return sqrt(err);
 }
 
-void addScaledArray(double * a, const double * b, int n, double sc){
+// saxpy
+void addScaledArray(double * a, const double * b, int n, const double sc){
 	int i;
 	for (i=0;i<n;i++){
 		a[i] += sc*b[i];
 	}
 }
+
+// y += alpha*A*x
+static inline void accumByScaledA(const Data *d, const double *x, const int sc, double *y){
+  // assumes memory storage exists for y
+  
+	/* y += A*x */
+	int p, j, n, m, *Ap, *Ai ;
+	double *Ax ;
+	m = d->m; n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+
+	int c1, c2;
+  
+	for (j = 0 ; j < n ; j++)
+	{
+		c1 = Ap[j]; c2 = Ap[j+1];
+		for (p = c1 ; p < c2 ; p++)        
+		{   
+			y[Ai[p]] += sc * Ax[p] * x[ j ] ;
+		}
+	}
+}
+
+// y += alpha*A'*x
+static inline void accumByScaledATrans(const Data *d, const double *x, const int sc, double *y){
+  // assumes memory storage exists for y
+  
+	/* y += A'*x */
+	int p, j, n, *Ap, *Ai ;
+	double *Ax ;
+	n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+
+	int c1, c2;
+  
+	for (j = 0 ; j < n ; j++)
+	{
+		c1 = Ap[j]; c2 = Ap[j+1];
+		for (p = c1 ; p < c2 ; p++)        
+		{   
+			y[j] += sc*Ax[p] * x[ Ai[p] ] ;
+		}
+	}
+}
+
+void accumByA(const Data *d, const double *x, double *y) {
+  accumByScaledA(d,x,1,y);
+}
+
+void accumByATrans(const Data *d, const double *x, double *y) {
+  accumByScaledATrans(d,x,1,y);
+}
+
+void decumByA(const Data *d, const double *x, double *y) {
+  accumByScaledA(d,x,-1,y);
+}
+
+void decumByATrans(const Data *d, const double *x, double *y) {
+  accumByScaledATrans(d,x,-1,y);
+}
+

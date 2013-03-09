@@ -11,14 +11,16 @@ Sol * coneOS(Data * d, Cone * k)
 		projectCones(d,w,k);
 		updateDualVars(w);
 
-		err = calcPriResid(d,w);
-		EPS_PRI = sqrt(w->l)*d->EPS_ABS + \
-				  d->EPS_REL*fmax(calcNorm(w->uv,w->l),calcNorm(w->uv_t,w->l));
-		if (err < EPS_PRI) break;
+    // err = calcPriResid(d,w);
+    // EPS_PRI = sqrt(w->l)*d->EPS_ABS + 
+    //       d->EPS_REL*fmax(calcNorm(w->uv,w->l),calcNorm(w->uv_t,w->l));
+    // if (err < EPS_PRI) break;
 		if (i % 10 == 0) printSummary(d,w,i,err,EPS_PRI);
 	}
 	Sol * sol = malloc(sizeof(Sol));
-	getSolution(d,w,sol);
+  setx(d,w,sol);
+  sety(d,w,sol);
+	//getSolution(d,w,sol);
 	printSummary(d,w,i,err,EPS_PRI);
 	printSol(d,sol);
 	freeWork(w);
@@ -27,10 +29,10 @@ Sol * coneOS(Data * d, Cone * k)
 
 void freeWork(Work * w){
   freePriv(w);
-  free(w->uv);
-  free(w->uv_t);
-  free(w->lam);
-  free(w->uv_h);
+  free(w->z_half);
+  free(w->z);
+  free(w->u);
+  free(w->ztmp);
   free(w);
 }
 
@@ -42,81 +44,78 @@ void printSol(Data * d, Sol * sol){
 			printf("x[%i] = %4f\n",i, sol->x[i]);
 		}
 	}
-	if (0 && sol->z != NULL){
+	if (0 && sol->y != NULL){
 		for ( i=0;i<d->m; i++){
-			printf("z[%i] = %4f\n",i, sol->z[i]);
+			printf("y[%i] = %4f\n",i, sol->y[i]);
 		}
 	}
 }
 
 void updateDualVars(Work * w){
-	addScaledArray(w->lam,w->uv_h,w->l,1);
-	addScaledArray(w->lam,w->uv_t,w->l,-1);
+	addScaledArray(w->u,w->ztmp,w->l,1);
+	addScaledArray(w->u,w->z,w->l,-1);
 }
 
 void projectCones(Data *d,Work * w,Cone * k){
-	memcpy(w->uv_t,w->uv_h,w->l*sizeof(double));
-	addScaledArray(w->uv_t,w->lam,w->l,1);
-	/* u = [x;z;tau] */
-	projCone(&(w->uv_t[d->n]),k,0);
-	if (w->uv_t[d->n+d->m]<0.0) w->uv_t[d->n+d->m] = 0.0;
+	memcpy(w->z,w->ztmp,w->l*sizeof(double));
+	addScaledArray(w->z,w->u,w->l,1);
+	/* s onto K */
+	projCone(w->z + w->si,k);
 
-	/* v = [y;s;kappa] */
-	memset(&(w->uv_t[w->l/2]),0,(sizeof(double)*d->n));
-	projCone(&(w->uv_t[w->l/2+d->n]),k,1);
-	if (w->uv_t[w->l-1]<0.0) w->uv_t[w->l-1] = 0.0;
+	/* r onto 0 */
+	memset(w->z + w->ri,0,(sizeof(double)*d->n));
+  
+  /* y onto K^* */
+	projDualCone(w->z + w->yi,k);
 }
 
-void getSolution(Data * d,Work * w,Sol * sol){
-	double tau = (w->uv[d->n+d->m]+w->uv_t[d->n+d->m])/2;
-	double kap = (w->uv[w->l-1]+w->uv_t[w->l-1])/2;
-	setx(d,w,sol);
-	setz(d,w,sol);
-	if (tau > d->UNDET_TOL && tau > kap){
-		sol->status = strdup("Solved");
-		scaleArray(sol->x,1/tau,d->n);
-		scaleArray(sol->z,1/tau,d->m);
-	}
-	else{ 
-		if (calcNorm(w->uv,w->l)<d->UNDET_TOL*sqrt(w->l)){
-			sol->status = strdup("Undetermined");
-			scaleArray(sol->x,NAN,d->n);
-			scaleArray(sol->z,NAN,d->m);
-		}
-		else {
-			double ip_z = innerProd(d->b,sol->z,d->m);  
-			double ip_x = innerProd(d->c,sol->x,d->n);  
-			if (ip_z < ip_x){
-				sol->status = strdup("Infeasible");
-				scaleArray(sol->z,-1/ip_z,d->m);
-				scaleArray(sol->x,NAN,d->n);
-			}
-			else{
-				sol->status = strdup("Unbounded");
-				scaleArray(sol->x,-1/ip_x,d->n);
-				scaleArray(sol->z,NAN,d->m);
-			}
-		}
-	}
-}
+// void getSolution(Data * d,Work * w,Sol * sol){
+//   double tau = (w->uv[d->n+d->m]+w->uv_t[d->n+d->m])/2;
+//   double kap = (w->uv[w->l-1]+w->uv_t[w->l-1])/2;
+//   setx(d,w,sol);
+//   setz(d,w,sol);
+//   if (tau > d->UNDET_TOL && tau > kap){
+//     sol->status = strdup("Solved");
+//     scaleArray(sol->x,1/tau,d->n);
+//     scaleArray(sol->z,1/tau,d->m);
+//   }
+//   else{ 
+//     if (calcNorm(w->uv,w->l)<d->UNDET_TOL*sqrt(w->l)){
+//       sol->status = strdup("Undetermined");
+//       scaleArray(sol->x,NAN,d->n);
+//       scaleArray(sol->z,NAN,d->m);
+//     }
+//     else {
+//       double ip_z = innerProd(d->b,sol->z,d->m);  
+//       double ip_x = innerProd(d->c,sol->x,d->n);  
+//       if (ip_z < ip_x){
+//         sol->status = strdup("Infeasible");
+//         scaleArray(sol->z,-1/ip_z,d->m);
+//         scaleArray(sol->x,NAN,d->n);
+//       }
+//       else{
+//         sol->status = strdup("Unbounded");
+//         scaleArray(sol->x,-1/ip_x,d->n);
+//         scaleArray(sol->z,NAN,d->m);
+//       }
+//     }
+//   }
+// }
 
-void setz(Data * d,Work * w, Sol * sol){
-	sol->z = malloc(sizeof(double)*d->m);
-	memcpy(sol->z,&w->uv[d->n],d->m*sizeof(double));
-	addScaledArray(sol->z,&w->uv_t[d->n],d->m,1);
-	scaleArray(sol->z,0.5,d->m);
+void sety(Data * d,Work * w, Sol * sol){
+	sol->y = malloc(sizeof(double)*d->m);
+	memcpy(sol->y, w->z + 2*(d->n) + d->m, d->m*sizeof(double));
 }
 
 void setx(Data * d,Work * w, Sol * sol){
 	sol->x = malloc(sizeof(double)*d->n);
-	memcpy(sol->x,w->uv,d->n*sizeof(double));
+	memcpy(sol->x, w->z, d->n*sizeof(double));
 }
 
 void relax(Data * d,Work * w){   
 	int j;
-	memcpy(w->uv_h,w->uv,sizeof(double)*w->l);
 	for( j=0;j<w->l;j++){
-		w->uv_h[j] = d->ALPH*w->uv[j]+(1-d->ALPH)*w->uv_t[j];
+		w->ztmp[j] = d->ALPH*w->z_half[j]+(1-d->ALPH)*w->z[j];
 	}
 }
 

@@ -2,7 +2,7 @@
 #include <math.h>
 
 /* in place projection (with branches) */
-inline void projSelfDualCone(double *restrict x, Cone *restrict k)
+static inline void projSelfDualCone(double *x, Cone * k)
 {
   int i, j;
   int count;
@@ -11,6 +11,7 @@ inline void projSelfDualCone(double *restrict x, Cone *restrict k)
   for(i = k->f; i < k->f+k->l; ++i)
   {
     if(x[i] < 0.0) x[i] = 0.0;
+    //x[i] = (x[i] < 0.0) ? 0.0 : x[i];
   }
   count = k->l+k->f;
   /* project onto SOC */
@@ -40,12 +41,12 @@ inline void projSelfDualCone(double *restrict x, Cone *restrict k)
   }
 }
 
-void projCone(double *restrict x, Cone *restrict k)
+void projCone(double *x, Cone *k)
 {
   projSelfDualCone(x,k);
 }
 
-void projDualCone(double *restrict x, Cone *restrict k)
+void projDualCone(double *x, Cone *k)
 {
   /* project zeros on zero cone */
   memset(x,0,(sizeof(double)*k->f));

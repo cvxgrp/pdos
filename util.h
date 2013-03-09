@@ -13,10 +13,5 @@ void printConeData(Data * d,Cone * k);
 void printData(Data * d);
 void printAll(Data * d, Work * w);
 
-// y += A*x
-void accumByA(const cs *A, const double *x, double *y);
-// y += A'*x
-void accumByATrans(const cs *A, const double *x, double *y);
-
 
 #endif

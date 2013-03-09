@@ -10,7 +10,7 @@ typedef struct Cone_t {
     int qsize;      /* length of SOC array */
 } Cone;
 
-void projCone(double * z,Cone* k);
-void projDualCone(double * z,Cone* k);
+void projCone(double *x,Cone *k);
+void projDualCone(double *x,Cone *k);
 
 #endif
