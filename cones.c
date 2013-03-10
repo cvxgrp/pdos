@@ -43,13 +43,14 @@ static inline void projSelfDualCone(double *x, Cone * k)
 
 void projCone(double *x, Cone *k)
 {
+  /* project zeros on zero cone */
+  // "s" corresponding to free variables should be set to 0
+  memset(x,0,sizeof(double)*k->f);
   projSelfDualCone(x,k);
 }
 
 void projDualCone(double *x, Cone *k)
 {
-  /* project zeros on zero cone */
-  memset(x,0,(sizeof(double)*k->f));
   projSelfDualCone(x, k);
 }
 

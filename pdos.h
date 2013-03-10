@@ -14,7 +14,7 @@ typedef struct PROBLEM_DATA {
   int * Ai, * Ap;
   double * b, * c;
   int MAX_ITERS, CG_MAX_ITS;
-  double EPS_ABS, ALPH, CG_TOL;
+  double EPS_ABS, EPS_INFEAS, ALPH, CG_TOL;
   int VERBOSE;  // boolean
 } Data;
 
@@ -107,6 +107,10 @@ Sol * pdos(Data * d, Cone * k);
 Work * initWork(Data * d);
 void projectLinSys(Data * d, Work * w);
 void freePriv(Work * w);
+
+// forward declare
+struct resid;
+
 // inline declarations
 static inline void relax(Data * d, Work * w);
 static inline void updateDualVars(Work * w);
@@ -115,7 +119,7 @@ static inline void projectCones(Data * d,Work * w,Cone * k);
 static inline void sety(Data * d, Work * w, Sol * sol);
 static inline void setx(Data * d, Work * w, Sol * sol);
 static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state);
-static inline void printSummary(Data * d,Work * w,int i, double p_res, double d_res, double eta);
+static inline void printSummary(Data * d,Work * w,int i, struct resid *r);
 static inline void printHeader();
 static inline void printSol(Data * d, Sol * sol);
 static inline void freeWork(Work * w);

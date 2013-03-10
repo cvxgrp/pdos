@@ -23,10 +23,22 @@ static const int HEADER_LEN = 8;
 // problem state
 enum { SOLVED = 0, INFEASIBLE, UNBOUNDED, INDETERMINATE };
 
+// to hold residual information
+struct resid {
+  double p_res;
+  double d_res;
+  double p_inf;
+  double d_inf;
+  double p_obj;
+  double d_obj;
+  double eta;
+};
+
 Sol * pdos(Data * d, Cone * k)
 {
 	int i, STATE = INDETERMINATE;
-  double p_res = -1, d_res = -1, eta = -1;
+  struct resid residuals = { -1, -1, -1, -1, -1, -1, -1 };
+
 	Work * w = initWork(d);
   printHeader();
   for (i=0; i < d->MAX_ITERS; ++i){             
@@ -35,21 +47,40 @@ Sol * pdos(Data * d, Cone * k)
     projectCones(d,w,k);
     updateDualVars(w);
     
-    p_res = calcPriResid(d,w);
-    d_res = calcDualResid(d,w);
-    eta = calcSurrogateGap(d,w);
+    residuals.p_res = calcPriResid(d,w);
+    residuals.d_res = calcDualResid(d,w);
+    residuals.eta = calcSurrogateGap(d,w);
+        
+    residuals.p_inf = calcCertPriResid(d,w);
+    residuals.d_inf = calcCertDualResid(d,w);
+    residuals.p_obj = calcCertPriObj(d,w);
+    residuals.d_obj = calcCertDualObj(d,w);
+    
     // err = calcPriResid(d,w);
     // EPS_PRI = sqrt(w->l)*d->EPS_ABS + 
     //       d->EPS_REL*fmax(calcNorm(w->uv,w->l),calcNorm(w->uv_t,w->l));
-    if (p_res < d->EPS_ABS && d_res < d->EPS_ABS && eta < d->EPS_ABS) {
+    if (residuals.p_res < d->EPS_ABS && 
+        residuals.d_res < d->EPS_ABS && 
+        residuals.eta < d->EPS_ABS) {
       STATE = SOLVED;
       break;
     }
-		if (i % 10 == 0) printSummary(d,w,i,p_res,d_res,eta);
+    if (residuals.d_inf < d->EPS_INFEAS && 
+        residuals.p_inf < d->EPS_INFEAS && 
+        residuals.p_obj - residuals.d_obj < -d->EPS_INFEAS /* fix at 1e-2? relative? */) {
+      if (residuals.d_obj < d->EPS_INFEAS)
+        STATE = UNBOUNDED;
+      else if (-residuals.p_obj < d->EPS_INFEAS)
+        STATE = INFEASIBLE;
+      else
+        STATE = INDETERMINATE;
+      break;
+    }
+		if (i % 10 == 0) printSummary(d,w,i, &residuals);
 	}
 	Sol * sol = malloc(sizeof(Sol));
 	getSolution(d,w,sol,STATE);
-	printSummary(d,w,i,p_res,d_res, eta);
+	printSummary(d,w,i,&residuals);
 	printSol(d,sol);
 	freeWork(w);
 	return sol;
@@ -137,16 +168,16 @@ static inline void relax(Data * d,Work * w){
 	}
 }
 
-static inline void printSummary(Data * d,Work * w,int i, double p_res, double d_res, double eta){
+static inline void printSummary(Data * d,Work * w,int i, struct resid *r){
 	// printf("Iteration %i, primal residual %4f, primal tolerance %4f\n",i,err,EPS_PRI);
   printf("%*i | ", (int)strlen(HEADER[0]), i);
-  printf("%*.4f   ", (int)strlen(HEADER[1]), p_res); // p_res
-  printf("%*.4f   ", (int)strlen(HEADER[2]), d_res); // d_res
-  printf("%*.4f   ", (int)strlen(HEADER[3]), 0.); // full(p_inf));
-  printf("%*.4f   ", (int)strlen(HEADER[4]), 0.);//full(d_inf));
-  printf("%*.4f   ", (int)strlen(HEADER[5]), 0.);//full(p_obj));
-  printf("%*.4f   ", (int)strlen(HEADER[6]), 0.);//full(d_obj));
-  printf("%*.4f\n", (int)strlen(HEADER[7]), eta);//full(eta));
+  printf("%*.4f   ", (int)strlen(HEADER[1]), r->p_res); // p_res
+  printf("%*.4f   ", (int)strlen(HEADER[2]), r->d_res); // d_res
+  printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_inf); // full(p_inf));
+  printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_inf);//full(d_inf));
+  printf("%*.4f   ", (int)strlen(HEADER[5]), r->p_obj);//full(p_obj));
+  printf("%*.4f   ", (int)strlen(HEADER[6]), r->d_obj);//full(d_obj));
+  printf("%*.4f\n", (int)strlen(HEADER[7]), r->eta);//full(eta));
 }
 
 static inline void printHeader() {

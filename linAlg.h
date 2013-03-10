@@ -52,7 +52,7 @@ static inline double calcNormInf(const double *v, int len) {
   int i;
   // compute norm_inf
   for(i = 0; i < len; ++i) {
-    value = abs(v[i]);
+    value = fabs(v[i]);
     max = (value > max) ? value : max;
   }
   return max;
@@ -147,7 +147,56 @@ static inline double calcSurrogateGap(const Data *d, Work *w) {
   return innerProd(d->c, w->z, d->n) + innerProd(d->b, w->z + (w->yi), d->m);
 }
 
+// partition w->u = (-r_c, -y_c, -x_c, -s_c) or (0, -w, -u, -v)
+//                  (xi, si, ri, yi)
+// norm(A*u + v, 'inf')/normA
+static inline double calcCertPriResid(const Data *d, Work *w) {
+  // w->u is negative of what we're interested in
+  memcpy(w->ztmp + w->si, w->u + (w->yi), (d->m)*sizeof(double));
+  accumByA(d, w->u + (w->ri), w->ztmp + (w->si));
 
+  return calcNormInf(w->ztmp + (w->si), d->m); // TODO: normalize by "normA"
+}
+
+// norm(A'*w, 'inf')/normB
+static inline double calcCertDualResid(const Data *d, Work *w) {
+  memset(w->ztmp, 0, (d->n)*sizeof(double));
+  accumByATrans(d, w->u + (w->si), w->ztmp);
+  return calcNormInf(w->ztmp, d->n); // TODO: normalize by "normB"
+}
+
+// c'*u
+static inline double calcCertPriObj(const Data *d, Work *w) {
+  // result is negated since w->u is negative of what we're interested in
+  return -innerProd(d->c, w->u + (w->ri), d->n);
+}
+
+// -b'*w
+static inline double calcCertDualObj(const Data *d, Work *w) {
+  // result is negated since w->u is negative of what we're interested in
+  return innerProd(d->b, w->u + (w->si), d->m);
+}
+
+
+// // x = b*a
+// void setAsScaledArray(double *x, const double * a,const double b,int len);
+// 
+// // a*= b
+// void scaleArray(double * a,const double b,int len);
+// 
+// // x'*y
+// double innerProd(const double * x, const double * y, int len);
+// 
+// // ||v||_2^2
+// double calcNormSq(const double * v,int len);
+// 
+// // ||v||_2
+// double calcNorm(const double * v,int len);
+// 
+// // ||v||_inf
+// double calcNormInf(const double *v, int len);
+// // saxpy
+// void addScaledArray(double * a, const double * b, int n, const double sc);
 // // y += A*x
 // void accumByA(const Data *d, const double *x, double *y);
 // // y += A'*x
