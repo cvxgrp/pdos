@@ -1,6 +1,6 @@
 #include "mex.h" 
 #include "matrix.h"
-#include "coneOS.h"
+#include "pdos.h"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -62,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   /* printConeData(d,k); */
   /* printData(d); */
-  Sol * sol = coneOS(d,k);
+  Sol * sol = pdos(d,k);
 
   plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
   mxSetPr(plhs[0], sol->x);

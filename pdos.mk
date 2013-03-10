@@ -1,6 +1,6 @@
 UNAME = $(shell uname -s)
-CC = gcc
-CFLAGS = -g -Wall -pedantic -O3 -I. 
+CC = cc
+CFLAGS = -g -Wall -pedantic -O3 -I.
 LDFLAGS = -lm
 
 ifeq ($(UNAME), Darwin)

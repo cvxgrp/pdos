@@ -12,58 +12,70 @@ void freePriv(Work * w){
   free(w->p);
 }
 
-static inline void prepZVariable(Data *d, Work *w) {
+static inline void prepZHalfVariable(Data *d, Work *w) {
   // memcpy(w->z_half,w->z,w->l*sizeof(double));
   // addScaledArray(w->z_half,w->lam,w->l,-1);
   
-  int i;
-  // set x_half = x - r_bar = x
+  // w->z_half = w->z - w->u = (x0,s0,r0,y0)
+  // w->ztmp, on the other hand, will contain (x0,b-s0,-c+r0,-y0)
+  
+  int i;  
   for (i = 0; i < d->n; i++) { 
-    w->z_half[i] = w->z[i] - 0; 
+    // set x_half = x - r_bar = x
+    w->z_half[i] = w->z[i] - 0;
+    // set x = x - r_bar = x
+    w->ztmp[i] = w->z_half[i];
   }
-  // set s_half = b - (s - y_bar)
-  for (i = 0; i < d->m; i++) { 
-    w->z_half[i + w->si] = d->b[i] - w->z[i + w->si] + w->u[i + w->si];
+  for (i = w->si; i < w->si + d->m; i++) { 
+    // set s_half = (s - y_bar)
+    w->z_half[i] =  w->z[i] - w->u[i];
+    // set s = b - (s - y_bar)
+    w->ztmp[i] = d->b[i - w->si] - w->z_half[i];
   }
-  // set r_half = r - x_bar - c = -x_bar - c
-  for (i = 0; i < d->n; i++) { 
-    w->z_half[i + w->ri] = 0 - w->u[i + w->ri] - d->c[i];
+  for (i = w->ri; i < w->ri + d->n; i++) { 
+    // set r_half = r - x_bar = -x_bar
+    w->z_half[i] = 0 - w->u[i];
+    // set r = r - x_bar - c = -x_bar - c
+    w->ztmp[i] = w->z_half[i] - d->c[i - w->ri];
   }
-  // set y_half = -(y - s_bar)
-  for (i = 0; i < d->n; i++) {
-    w->z_half[i + w->yi] = - w->z[i + w->yi] + w->u[i + w->yi]; 
+  for (i = w->yi; i < w->yi + d->m; i++) {
+    // set y_half = -(y - s_bar)
+    w->z_half[i] = w->z[i] - w->u[i]; 
+    // set y = -(y - s_bar)
+    w->ztmp[i] = -w->z_half[i]; 
   }
 }
 
 void projectLinSys(Data *d, Work * w){
-
-  prepZVariable(d,w);
+  // this preps z_half = z - u, and ztmp = argument for LDL solve
+  prepZHalfVariable(d,w);
   
   const double *x = w->z_half;
-  const double *y = w->z_half + w->yi;
-
-  choleskySolve(w->ztmp, w->z_half, w->p->L, w->p->D, w->p->P);
+  const double *y = w->z_half + w->yi;  
+  
+  choleskySolve(w->ztmp, w->ztmp, w->p->L, w->p->D, w->p->P);
   
   double *kappa1 = (w->ztmp) + w->si; // has length m
   double *kappa2 = (w->ztmp) + w->ri; // has length n
   
+  // (c'*x + b'*y - (A*c)'*kappa1 + (A'*b)'*kappa2)/s
   double delta3 = (innerProd(d->c,x,d->n) + innerProd(d->b,y,d->m) - \
     innerProd(w->p->Ac, kappa1, d->m) + innerProd(w->p->Atb, kappa2, d->n))/(w->p->s);
-  
+    
   // delta1 = kappa1 - delta3*alpha1
   // stored in (w->ztmp) + d->n
   addScaledArray(kappa1,w->p->alpha1, d->m,-delta3);
   // delta2 = kappa2 - delta3*alpha2
   // stored in (w->ztmp) + d->n + d->m
   addScaledArray(kappa2,w->p->alpha2, d->n,-delta3);
-  
+
   // A'*delta1 + c*delta3
   setAsScaledArray(w->ztmp, d->c, delta3, d->n);
   accumByATrans(d, kappa1, w->ztmp);
   
   // -A*delta2 + b*delta3
   setAsScaledArray(w->ztmp + w->yi, d->b, delta3, d->m);
-  decumByA(d, kappa1, w->ztmp);
+  decumByA(d, kappa2, w->ztmp + w->yi);
   
   // z_half = z - [data.A'*delta1 + data.c*delta3; delta1; delta2; -data.A*delta2 + data.b*delta3]
   addScaledArray(w->z_half,w->ztmp,w->l,-1);
@@ -97,6 +109,7 @@ Work * initWork(Data* d){
   // Atb += A'*b
   accumByATrans(d, d->b, w->p->Atb);
   
+  // tmp may be extraneous (put into w->ztmp?)
   double *tmp = calloc(w->l, sizeof(double));
   w->p->alpha1 = malloc(sizeof(double)*d->m);
   w->p->alpha2 = malloc(sizeof(double)*d->n);
@@ -106,7 +119,7 @@ Work * initWork(Data* d){
   // memcpy(tmp + 2*(d->n) + (d->m), d->b, (d->m)*sizeof(double));
   setAsScaledArray(tmp + 2*(d->n) + (d->m), d->b, -1, d->m);
   
-  choleskySolve(w->ztmp, w->ztmp, w->p->L, w->p->D, w->p->P);
+  choleskySolve(tmp, tmp, w->p->L, w->p->D, w->p->P);
   
   // set alpha1 and alpha2
   memcpy(w->p->alpha1, tmp + (d->n), (d->m)*sizeof(double));
@@ -127,31 +140,35 @@ cs * formKKT(Data * d, Work * w){
    *
    * forms upper triangular part of [I A'; A -I]
 	 */
-	int j, k;
+	int j, k, kk;
 	/* I at top left */
   const int Anz = d->Ap[d->n];
-	const int Knzmax = w->l + 2*Anz;
+	const int Knzmax = (w->l)/2 + Anz;
 	cs * K = cs_spalloc(d->m + d->n, d->m + d->n, Knzmax, 1, 1);
+  kk = 0;
 	for (k = 0; k < d->n; k++){
-		K->i[k] = k;
-		K->p[k] = k;
-		K->x[k] = 1;
+		K->i[kk] = k;
+		K->p[kk] = k;
+		K->x[kk] = 1;
+    kk++;
 	}
 	/* A^T at top right : CCS: */
 	for (j = 0; j < d->n; j++) {                 
 		for (k = d->Ap[j]; k < d->Ap[j+1]; k++) { 
-			K->p[k] = d->Ai[k] + d->n;
-			K->i[k] = j;
-			K->x[k] = d->Ax[k];
+			K->p[kk] = d->Ai[k] + d->n;
+			K->i[kk] = j;
+			K->x[kk] = d->Ax[k];
+      kk++;
 		}   
 	}
-  
 	/* -I at bottom right */
 	for (k = 0; k < d->m; k++){
-		K->i[k] = k + d->n;
-		K->p[k] = k + d->n;
-		K->x[k] = -1;
+		K->i[kk] = k + d->n;
+		K->p[kk] = k + d->n;
+		K->x[kk] = -1;
+    kk++;
 	}
+  // assert kk == Knzmax
 	K->nz = Knzmax;
 	cs * K_cs = cs_compress(K);
 	cs_spfree(K);
@@ -166,7 +183,7 @@ void factorize(Data * d,Work * w){
   double *info;
   choleskyInit(K, w->p->P, &info);
   amd_info(info);
-  int * Pinv = cs_pinv(w->p->P, w->l);
+  int * Pinv = cs_pinv(w->p->P, (w->l)/2);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
   printf("KKT matrix factorization took %4.2f s\n",tocq());

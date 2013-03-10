@@ -1,5 +1,5 @@
-#ifndef RUN_CONEOS_H_GUARD
-#define RUN_CONEOS_H_GUARD
+#ifndef RUN_PDOS_H_GUARD
+#define RUN_PDOS_H_GUARD
 
 int main(int argc, char **argv);
 void free_data(Data * d, Cone * k);

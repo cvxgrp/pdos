@@ -1,17 +1,17 @@
-#include "coneOS.h"
-#include "run_coneOS.h"
+#include "pdos.h"
+#include "run_pdos.h"
 
 int main(int argc, char **argv)
 {
   tic();
   FILE * fp;
-  if(open_file(argc, argv, 1, "../matlab/data_rome", &fp)==-1) return -1;
+  if(open_file(argc, argv, 1, "matlab/data_rome", &fp)==-1) return -1;
   Cone * k = malloc(sizeof(Cone));
   Data * d = malloc(sizeof(Data));
   read_in_data(fp,d,k);
   fclose(fp);
 
-  Sol * sol = coneOS(d,k);
+  Sol * sol = pdos(d,k);
   printf("Total factorize + solve time %4f seconds\n",tocq());
   free_data(d,k);
   free(sol->x);free(sol->y);free(sol->status);free(sol);

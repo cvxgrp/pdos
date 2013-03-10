@@ -4,7 +4,7 @@
 #include "cs.h"
 #include "amd.h"
 #include "ldl.h"
-#include "coneOS.h"
+#include "pdos.h"
 
 struct PRIVATE_DATA {
 	cs * L; /* KKT, and factorization matrix L resp. */

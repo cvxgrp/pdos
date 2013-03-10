@@ -1,5 +1,10 @@
-#ifndef coneOS_H_GUARD                                                              
-#define coneOS_H_GUARD
+#ifndef PDOS_H_GUARD                                                              
+#define PDOS_H_GUARD
+
+// include different things depending on which version to compile instead of
+// using a different external library
+// #include direct/private.h
+// #include indirect/private.h
 
 /* struct that containing standard problem data */
 typedef struct PROBLEM_DATA {
@@ -84,18 +89,35 @@ typedef struct WORK {
 #include "util.h"
 #include "linAlg.h"
 
-Work * initWork(Data * d);
-double calcPriResid(Data * d, Work * w);
+//Work * initWork(Data * d);
+//double calcPriResid(Data * d, Work * w);
 //void getSolution(Data* d,Work * w,Sol* sol);
-void relax(Data * d, Work * w);
-Sol * coneOS(Data * d, Cone * k);
-void updateDualVars(Work * w);
-void projectCones(Data * d,Work * w,Cone * k);
+//void relax(Data * d, Work * w);
+Sol * pdos(Data * d, Cone * k);
+//void updateDualVars(Work * w);
+//void projectCones(Data * d,Work * w,Cone * k);
+//void projectLinSys(Data * d, Work * w);
+//void sety(Data * d, Work * w, Sol * sol);
+//void setx(Data * d, Work * w, Sol * sol);
+//void printSummary(Data * d,Work * w,int i, double err, double EPS_PRI);
+//void printSol(Data * d, Sol * sol);
+//void freeWork(Work * w);
+//void freePriv(Work * w);
+
+Work * initWork(Data * d);
 void projectLinSys(Data * d, Work * w);
-void sety(Data * d, Work * w, Sol * sol);
-void setx(Data * d, Work * w, Sol * sol);
-void printSummary(Data * d,Work * w,int i, double err, double EPS_PRI);
-void printSol(Data * d, Sol * sol);
-void freeWork(Work * w);
 void freePriv(Work * w);
+// inline declarations
+static inline void relax(Data * d, Work * w);
+static inline void updateDualVars(Work * w);
+static inline void prepZVariable(Work *w);
+static inline void projectCones(Data * d,Work * w,Cone * k);
+static inline void sety(Data * d, Work * w, Sol * sol);
+static inline void setx(Data * d, Work * w, Sol * sol);
+static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state);
+static inline void printSummary(Data * d,Work * w,int i, double p_res, double d_res, double eta);
+static inline void printHeader();
+static inline void printSol(Data * d, Sol * sol);
+static inline void freeWork(Work * w);
+
 #endif

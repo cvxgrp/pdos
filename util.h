@@ -4,7 +4,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "coneOS.h"
+#include "pdos.h"
 
 void tic(void); 
 float toc(void); 
