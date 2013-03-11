@@ -58,7 +58,7 @@ static inline double calcNormInf(const double *v, int len) {
   return max;
 }
 
-// saxpy
+// saxpy a += sc*b
 static inline void addScaledArray(double * a, const double * b, int n, const double sc){
 	int i;
 	for (i=0;i<n;++i){
@@ -67,7 +67,7 @@ static inline void addScaledArray(double * a, const double * b, int n, const dou
 }
 
 // y += alpha*A*x
-static inline void accumByScaledA(const Data *d, const double *x, const int sc, double *y){
+static inline void accumByScaledA(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
 	/* y += A*x */
@@ -88,7 +88,7 @@ static inline void accumByScaledA(const Data *d, const double *x, const int sc, 
 }
 
 // y += alpha*A'*x
-static inline void accumByScaledATrans(const Data *d, const double *x, const int sc, double *y){
+static inline void accumByScaledATrans(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
 	/* y += A'*x */
@@ -103,25 +103,25 @@ static inline void accumByScaledATrans(const Data *d, const double *x, const int
 		c1 = Ap[j]; c2 = Ap[j+1];
 		for (p = c1 ; p < c2 ; p++)        
 		{   
-			y[j] += sc*Ax[p] * x[ Ai[p] ] ;
+			y[j] += sc * Ax[p] * x[ Ai[p] ] ;
 		}
 	}
 }
 
 static inline void accumByA(const Data *d, const double *x, double *y) {
-  accumByScaledA(d,x,1,y);
+  accumByScaledA(d,x,1.0,y);
 }
 
 static inline void accumByATrans(const Data *d, const double *x, double *y) {
-  accumByScaledATrans(d,x,1,y);
+  accumByScaledATrans(d,x,1.0,y);
 }
 
 static inline void decumByA(const Data *d, const double *x, double *y) {
-  accumByScaledA(d,x,-1,y);
+  accumByScaledA(d,x,-1.0,y);
 }
 
 static inline void decumByATrans(const Data *d, const double *x, double *y) {
-  accumByScaledATrans(d,x,-1,y);
+  accumByScaledATrans(d,x,-1.0,y);
 }
 
 // norm(A*x + s - b, 'inf')/normA

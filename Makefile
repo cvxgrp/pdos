@@ -23,7 +23,7 @@ direct/private.o: direct/private.c
 	$(CC) $(CFLAGS) $(EINCS) -c -o $@ $^ 
 
 indirect/private.o: indirect/private.c
-	$(CC) $(CFLAGS) -fopenmp -c -o $@ $^ 
+	$(CC) $(CFLAGS) -c -o $@ $^ 
 
 pdos_direct: $(OBJECTS) direct/private.o
 	$(ARCHIVE) libpdosdir.a $^
@@ -37,7 +37,7 @@ demo_direct: run_pdos.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) libpdosdir.a $(ELIBS) 
 
 demo_indirect: run_pdos.c 
-	$(CC) $(CFLAGS) -fopenmp -o $@ $^ libpdosindir.a $(LDFLAGS) 
+	$(CC) $(CFLAGS) -o $@ $^ libpdosindir.a $(LDFLAGS) 
 
 .PHONY: clean purge
 

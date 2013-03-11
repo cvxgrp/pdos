@@ -82,7 +82,6 @@ void projectLinSys(Data *d, Work * w){
 }
 
 Work * initWork(Data* d){ 
-  // CHECK
   int n_plus_m = d->n + d->m;
   Work * w = malloc(sizeof(Work));
   w->p = malloc(sizeof(Priv));
