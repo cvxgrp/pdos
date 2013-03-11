@@ -5,7 +5,7 @@ int main(int argc, char **argv)
 {
   tic();
   FILE * fp;
-  if(open_file(argc, argv, 1, "data_portfolio", &fp)==-1) return -1;
+  if(open_file(argc, argv, 1, "data_pdos", &fp)==-1) return -1;
   Cone * k = malloc(sizeof(Cone));
   Data * d = malloc(sizeof(Data));
   read_in_data(fp,d,k);
