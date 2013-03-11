@@ -3,7 +3,6 @@ Primal Dual Operator Splitting Method for Conic Optimization
 
 Installing
 ==========
-* compile with -DINDIRECT to get an indirect solver
 * Compiles into 64 bit.
 * for 32 bit matlab, need to be a little more "careful"
 
@@ -25,3 +24,4 @@ TODO:
 * indirect solver
 * matlab source code
 * python interface
+* compile with -DINDIRECT to get an indirect solver
