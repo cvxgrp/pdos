@@ -86,6 +86,26 @@ Sol * pdos(Data * d, Cone * k)
 	return sol;
 }
 
+void free_data(Data * d, Cone * k){
+  if(d->b) free(d->b);
+  if(d->c) free(d->c);
+  if(d->Ax) free(d->Ax);
+  if(d->Ai) free(d->Ai);
+  if(d->Ap) free(d->Ap);
+  if(d) free(d);
+  if(k->q) free(k->q);
+  if(k) free(k);
+  d = NULL; k = NULL;
+}
+
+void free_sol(Sol *sol){
+  if(sol->x) free(sol->x);
+  if(sol->y) free(sol->y);
+  if(sol->status) free(sol->status);
+  if(sol) free(sol);
+  sol = NULL;
+}
+
 static inline void freeWork(Work * w){
   freePriv(w);
   free(w->z_half);

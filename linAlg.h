@@ -12,38 +12,38 @@
 // x = b*a
 static inline void setAsScaledArray(double *x, const double * a,const double b,int len) {
   int i;
-	for( i=0;i<len;++i ) x[i] = b*a[i];
+  for( i=0;i<len;++i ) x[i] = b*a[i];
 }
 
 // a*= b
 static inline void scaleArray(double * a,const double b,int len){
-	int i;
-	for( i=0;i<len;++i) a[i]*=b;
+  int i;
+  for( i=0;i<len;++i) a[i]*=b;
 }
 
 // x'*y
 static inline double innerProd(const double * x, const double * y, int len){
-	int i;
-	double ip = 0.0;
-	for ( i=0;i<len;++i){
-		ip += x[i]*y[i];
-	}
-	return ip;
+  int i;
+  double ip = 0.0;
+  for ( i=0;i<len;++i){
+    ip += x[i]*y[i];
+  }
+  return ip;
 }
 
 // ||v||_2^2
 static inline double calcNormSq(const double * v,int len){
-	int i;
-	double nmsq = 0.0;
-	for ( i=0;i<len;++i){
-		nmsq += v[i]*v[i];
-	}
-	return nmsq;
+  int i;
+  double nmsq = 0.0;
+  for ( i=0;i<len;++i){
+    nmsq += v[i]*v[i];
+  }
+  return nmsq;
 }
 
 // ||v||_2
 static inline double calcNorm(const double * v,int len){
-	return sqrt(calcNormSq(v, len));
+  return sqrt(calcNormSq(v, len));
 }
 
 // ||v||_inf
@@ -60,52 +60,52 @@ static inline double calcNormInf(const double *v, int len) {
 
 // saxpy a += sc*b
 static inline void addScaledArray(double * a, const double * b, int n, const double sc){
-	int i;
-	for (i=0;i<n;++i){
-		a[i] += sc*b[i];
-	}
+  int i;
+  for (i=0;i<n;++i){
+    a[i] += sc*b[i];
+  }
 }
 
 // y += alpha*A*x
 static inline void accumByScaledA(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
-	/* y += A*x */
-	int p, j, n, m, *Ap, *Ai ;
-	double *Ax ;
-	m = d->m; n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+  /* y += A*x */
+  int p, j, n, m, *Ap, *Ai ;
+  double *Ax ;
+  m = d->m; n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
 
-	int c1, c2;
+  int c1, c2;
   
-	for (j = 0 ; j < n ; j++)
-	{
-		c1 = Ap[j]; c2 = Ap[j+1];
-		for (p = c1 ; p < c2 ; p++)        
-		{   
-			y[Ai[p]] += sc * Ax[p] * x[ j ] ;
-		}
-	}
+  for (j = 0 ; j < n ; j++)
+  {
+    c1 = Ap[j]; c2 = Ap[j+1];
+    for (p = c1 ; p < c2 ; p++)        
+    {   
+      y[Ai[p]] += sc * Ax[p] * x[ j ] ;
+    }
+  }
 }
 
 // y += alpha*A'*x
 static inline void accumByScaledATrans(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
-	/* y += A'*x */
-	int p, j, n, *Ap, *Ai ;
-	double *Ax ;
-	n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+  /* y += A'*x */
+  int p, j, n, *Ap, *Ai ;
+  double *Ax ;
+  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
 
-	int c1, c2;
+  int c1, c2;
   
-	for (j = 0 ; j < n ; j++)
-	{
-		c1 = Ap[j]; c2 = Ap[j+1];
-		for (p = c1 ; p < c2 ; p++)        
-		{   
-			y[j] += sc * Ax[p] * x[ Ai[p] ] ;
-		}
-	}
+  for (j = 0 ; j < n ; j++)
+  {
+    c1 = Ap[j]; c2 = Ap[j+1];
+    for (p = c1 ; p < c2 ; p++)        
+    {   
+      y[j] += sc * Ax[p] * x[ Ai[p] ] ;
+    }
+  }
 }
 
 static inline void accumByA(const Data *d, const double *x, double *y) {
@@ -212,7 +212,11 @@ static inline double calcCertDualObj(const Data *d, Work *w) {
 // double calcDualResid(const Data *d, Work *w);
 // // c'*x + b'*y
 // double calcSurrogateGap(const Data *d, Work *w);
-
-
+// 
+// double calcCertPriResid(const Data *d, Work *w);
+// double calcCertDualResid(const Data *d, Work *w);
+// double calcCertPriObj(const Data *d, Work *w);
+// double calcCertDualObj(const Data *d, Work *w);
+// 
 
 #endif

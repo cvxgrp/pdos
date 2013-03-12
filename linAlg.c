@@ -137,3 +137,30 @@
 //  double calcSurrogateGap(const Data *d, Work *w) {
 //   return innerProd(d->c, w->z, d->n) + innerProd(d->b, w->z + (w->yi), d->m);
 // }
+// 
+//  double calcCertPriResid(const Data *d, Work *w) {
+//   // w->u is negative of what we're interested in
+//   memcpy(w->ztmp + w->si, w->u + (w->yi), (d->m)*sizeof(double));
+//   accumByA(d, w->u + (w->ri), w->ztmp + (w->si));
+// 
+//   return calcNormInf(w->ztmp + (w->si), d->m); // TODO: normalize by "normA"
+// }
+// 
+// // norm(A'*w, 'inf')/normB
+//  double calcCertDualResid(const Data *d, Work *w) {
+//   memset(w->ztmp, 0, (d->n)*sizeof(double));
+//   accumByATrans(d, w->u + (w->si), w->ztmp);
+//   return calcNormInf(w->ztmp, d->n); // TODO: normalize by "normB"
+// }
+// 
+// // c'*u
+//  double calcCertPriObj(const Data *d, Work *w) {
+//   // result is negated since w->u is negative of what we're interested in
+//   return -innerProd(d->c, w->u + (w->ri), d->n);
+// }
+// 
+// // -b'*w
+//  double calcCertDualObj(const Data *d, Work *w) {
+//   // result is negated since w->u is negative of what we're interested in
+//   return innerProd(d->b, w->u + (w->si), d->m);
+// }

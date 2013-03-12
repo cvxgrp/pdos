@@ -94,6 +94,9 @@ typedef struct WORK {
 //void getSolution(Data* d,Work * w,Sol* sol);
 //void relax(Data * d, Work * w);
 Sol * pdos(Data * d, Cone * k);
+void free_data(Data *d, Cone *k);
+void free_sol(Sol *sol);
+
 //void updateDualVars(Work * w);
 //void projectCones(Data * d,Work * w,Cone * k);
 //void projectLinSys(Data * d, Work * w);

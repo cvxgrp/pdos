@@ -14,13 +14,8 @@ int main(int argc, char **argv)
   Sol * sol = pdos(d,k);
   printf("Total factorize + solve time %4f seconds\n",tocq());
   free_data(d,k);
-  free(sol->x);free(sol->y);free(sol->status);free(sol);
-  
+  free_sol(sol);
   return 0;
-}
-
-void free_data(Data * d, Cone * k){
-    free(d->b);free(d->c);free(d->Ax);free(d->Ai);free(d->Ap);free(d);free(k->q);free(k);        
 }
 
 void read_in_data(FILE * fp,Data * d, Cone * k){
