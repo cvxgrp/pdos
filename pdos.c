@@ -1,10 +1,5 @@
 #include "pdos.h"
-// forward declarations
-// these aren't inlined because they are externally linked in (depending if
-// we build the direct or indirect version)
-
-
-// constants for the headings
+// constants and data structures
 static const char* HEADER[] = {
   "Iter", 
   "ni(Ax+s-b)",
@@ -33,6 +28,19 @@ struct resid {
   double d_obj;
   double eta;
 };
+
+// forward declare inline declarations
+static inline void relax(Data * d, Work * w);
+static inline void updateDualVars(Work * w);
+static inline void prepZVariable(Work *w);
+static inline void projectCones(Data * d,Work * w,Cone * k);
+static inline void sety(Data * d, Work * w, Sol * sol);
+static inline void setx(Data * d, Work * w, Sol * sol);
+static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state);
+static inline void printSummary(Data * d,Work * w,int i, struct resid *r);
+static inline void printHeader();
+static inline void printSol(Data * d, Sol * sol);
+static inline void freeWork(Work * w);
 
 Sol * pdos(Data * d, Cone * k)
 {

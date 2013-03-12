@@ -107,24 +107,10 @@ void free_sol(Sol *sol);
 //void freeWork(Work * w);
 //void freePriv(Work * w);
 
+// these are pulled in from private.o
 Work * initWork(Data * d);
 void projectLinSys(Data * d, Work * w);
 void freePriv(Work * w);
 
-// forward declare
-struct resid;
-
-// inline declarations
-static inline void relax(Data * d, Work * w);
-static inline void updateDualVars(Work * w);
-static inline void prepZVariable(Work *w);
-static inline void projectCones(Data * d,Work * w,Cone * k);
-static inline void sety(Data * d, Work * w, Sol * sol);
-static inline void setx(Data * d, Work * w, Sol * sol);
-static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state);
-static inline void printSummary(Data * d,Work * w,int i, struct resid *r);
-static inline void printHeader();
-static inline void printSol(Data * d, Sol * sol);
-static inline void freeWork(Work * w);
 
 #endif
