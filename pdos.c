@@ -92,9 +92,10 @@ Sol * pdos(Data * d, Cone * k)
 	Sol * sol = malloc(sizeof(Sol));
 	getSolution(d,w,sol,STATE);
   
-	if(d->VERBOSE) printSummary(d,w,i,&residuals);
-	printSol(d,sol);
-	
+	if(d->VERBOSE) {
+    printSummary(d,w,i,&residuals);
+	  printSol(d,sol);
+	}
   freeWork(w);
 	return sol;
 }
@@ -137,12 +138,12 @@ static inline void freeWork(Work * w){
 static inline void printSol(Data * d, Sol * sol){
 	int i;
 	printf("%s\n",sol->status); 
-	if (1 && sol->x != NULL){
+	if (sol->x != NULL){
 		for ( i=0;i<d->n; ++i){
 			printf("x[%i] = %4f\n",i, sol->x[i]);
 		}
 	}
-	if (0 && sol->y != NULL){
+	if (sol->y != NULL){
 		for ( i=0;i<d->m; ++i){
 			printf("y[%i] = %4f\n",i, sol->y[i]);
 		}
