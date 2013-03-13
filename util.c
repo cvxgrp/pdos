@@ -43,6 +43,7 @@ void printData(Data * d){
   //printf("d->UNDET_TOL is %6f\n",d->UNDET_TOL);
   printf("d->CG_TOL is %6f\n",d->CG_TOL);
   printf("d->Ap[0] is %i\n",d->Ap[0]);
+  printf("d->Ap[1] is %i\n",d->Ap[1]);
 	printf("d->Ai[0] is %i\n",d->Ai[0]);
 	printf("d->Ax[0] is %4f\n",d->Ax[0]);
 }

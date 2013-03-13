@@ -1,9 +1,8 @@
 #include <Python.h>
 #include "pdos.h"
+#include "numpy/arrayobject.h"
 
-/* WARNING: this code converts Python integers (which are stored as C long's)
- * into C ints. we don't anticipate working with arrays that push int
- * precision, but if that happens someday, we'll have to fix this.
+/* WARNING: this code uses numpy array types
  *
  * WARNING: this code also does not check that the data for the matrix A is
  * actually column compressed storage for a sparse matrix. if it's not, the
@@ -12,129 +11,44 @@
  */
 
 static PyObject *PDOSError;
-
-// converts a list of python floats into a double *
-static int convertDoubleArray(PyObject *obj, void *data)
-{
-  int i, len;
-  PyObject *tmp;
-  double **p = (double **) data;
-  if( !PySequence_Check(obj) ) {
-    PyErr_SetString(PDOSError, "argument must be a sequence"); 
-    return 0; 
+ 
+static inline int getIntType() {
+  switch(NPY_SIZEOF_INT) {
+    case 1: return NPY_INT8;
+    case 2: return NPY_INT16;
+    case 4: return NPY_INT32;
+    case 8: return NPY_INT64;
+    default: return NPY_INT32;  // defaults to 4 byte int
   }
-  
-  len = (int) PySequence_Size(obj);
-  if( len < 0 ) {
-    PyErr_SetString(PDOSError, "unknown list length"); 
-    return 0; 
-  }
-  
-  // allocate memory
-  *p = malloc(len*sizeof(double));
-  
-  // deep copy data
-  for(i = 0; i < len; ++i) {
-    tmp = PySequence_GetItem(obj, i); // creates a new reference
-    if( !tmp ) {
-      PyErr_SetString(PDOSError, "unable to access list");
-      // free(*p);  // freed externally (when we call free_data)
-      return 0; 
-    }
-    
-    if( !PyFloat_Check(tmp) ) {
-      PyErr_SetString(PDOSError, "must be a list of floats");
-      // free(*p);  // freed externally (when we call free_data)
-      return 0; 
-    }
-    
-    (*p)[i] = PyFloat_AS_DOUBLE(tmp);
-    Py_DECREF(tmp);  // decrement the reference
-  }
-  return 1;
 }
 
-// converts a list of python integers into an int *
-static int convertIntegerArray(PyObject *obj, void *data)
-{
-  int i, len;
-  PyObject *tmp;
-  int **p = (int **) data;
-  if( !PySequence_Check(obj) ) {
-    PyErr_SetString(PDOSError, "argument must be a sequence"); 
-    return 0; 
-  }
-  
-  len = (int) PySequence_Size(obj);
-  if( len < 0 ) {
-    PyErr_SetString(PDOSError, "unknown list length"); 
-    return 0; 
-  }
-  
-  // allocate memory
-  *p = malloc(len*sizeof(int));
-  
-  // deep copy data
-  for(i = 0; i < len; ++i) {
-    tmp = PySequence_GetItem(obj, i); // creates a new reference
-    if( !tmp ) {
-      PyErr_SetString(PDOSError, "unable to access list");
-      // free(*p);  // freed externally (when we call free_data)
-      return 0; 
-    }
-    
-    if( !PyInt_Check(tmp) ) {
-      PyErr_SetString(PDOSError, "must be a list of ints");
-      // free(*p);  // freed externally (when we call free_data)
-      return 0; 
-    }
-    
-    // WARNING: python stores integers as longs, this eliminates precision
-    // which is fine for arrays with integer values < 2^31.
-    (*p)[i] = (int) PyInt_AS_LONG(tmp);
-    Py_DECREF(tmp);  // decrement the reference
-  }
-  return 1;
+static inline int getDoubleType() {
+  return NPY_DOUBLE;
 }
 
-// converts a list of python floats into a double * and stores "data.n"
-static int convertPrimalObj(PyObject *obj, void *data)
-{
-  Data *d = (Data *) data;
-  int return_val = convertDoubleArray(obj, &(d->c));
-  if(return_val)
-    d->n = (int) PySequence_Size(obj); // this has already succeeded
-  
-  return return_val;
+static inline void freeDataAndConeOnly(Data *d, Cone *k) {
+  // this function is useful since the Data and Cone "structs" do not own the
+  // memory for the arrays; numpy does.
+  if(d) free(d);
+  if(k) free(k);
+  d = NULL; k = NULL;
 }
 
-// converts a list of python floats into a double * and stores "data.m"
-static int convertDualObj(PyObject *obj, void *data)
+// TODO: use PyObject * to keep track of whether or not two objects are equivalent (for warm-starting)
+// static const double *prev_Ax, *prev_b, *prev_c;
+// static const int *prev_Ai, *prev_Ap, *prev_q;
+
+static Sol *solution = NULL;
+
+static void cleanup()
 {
-  Data *d = (Data *) data;
-  int return_val = convertDoubleArray(obj, &(d->b));
-  if(return_val)
-    d->m = (int) PySequence_Size(obj); // this has already succeeded
-
-  return return_val;
+  free_sol(solution);
 }
-
-// converts a list of python ints into an int* and stores "k.qsize"
-static int convertCone(PyObject *obj, void *cone)
-{
-  Cone *k = (Cone *) cone;
-  int return_val = convertIntegerArray(obj, &(k->q));
-  if(return_val)
-    k->qsize = (int) PySequence_Size(obj); // this has already succeeded
-
-  return return_val;
-}
-
 
 static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
 {
   /* Expects a function call 
-   *     solve(Ax, Ai, Ap, b, c, f=,l=,q=, MAX_ITERS=, EPS_ABS=, EPS_INFEAS=, ALPHA=)
+   *     sol = solve(Ax, Ai, Ap, b, c, f=,l=,q=, MAX_ITERS=, EPS_ABS=, EPS_INFEAS=, ALPHA=, VERBOSE=)
    * The uppercase keywords are optional. If INDIRECT is #define'd, then
    * CG_MAX_ITS and CG_TOL are also optional keyword arguments.
    *
@@ -159,19 +73,24 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    *  Defaults to 5e-5.
    * ALPHA is a double in (0,2) (non-inclusive). Sets the over-relaxation
    *  parameter. Defaults to 1.0.
+   * VERBOSE is an integer (or Boolean) either 0 or 1. Sets the verbosity of
+   *  the solver. Defaults to 1 (or True).
    *
    * CG_MAX_ITS is an integer. Sets the maximum number of CG iterations.
    *  Defaults to 20.
    * CG_TOL is a double. Sets the tolerance for CG.
    *  Defaults to 1e-3.
    *  
+   * The code returns a Python dictionary with three keys, 'x', 'y', and 'status'.
+   * These report the primal and dual solution (as numpy arrays) and the solver
+   * status (as a string).
    */
      
      
 #ifdef INDIRECT
-  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "CG_MAX_ITS", "CG_TOL", NULL};
+  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "CG_MAX_ITS", "CG_TOL", "VERBOSE", NULL};
 #else
-  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", NULL};
+  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "VERBOSE", NULL};
 #endif
   Data *d = calloc(1,sizeof(Data)); // sets everything to 0
   Cone *k = calloc(1,sizeof(Cone)); // sets everything to 0
@@ -183,56 +102,148 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   d->CG_MAX_ITS = 20;
   d->CG_TOL = 1e-3;
 #endif
-
+  
+  PyArrayObject *Ax, *Ai, *Ap, *b, *c, *q = NULL;
+  PyArrayObject *tmp_arr;
+  PyArrayObject *Ax_arr, *Ai_arr, *Ap_arr, *b_arr, *c_arr, *q_arr = NULL;
+  
+  int intType = getIntType();
+  int doubleType = getDoubleType();
+  
 #ifdef INDIRECT
-  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O&O&O&O&O&|iiO&idddid", kwlist,
-      &convertDoubleArray, &(d->Ax),
-      &convertIntegerArray, &(d->Ai),
-      &convertIntegerArray, &(d->Ap),
-      &convertPrimalObj, d,
-      &convertDualObj, d,
+  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddidi", kwlist,
+      &PyArray_Type, &Ax,
+      &PyArray_Type, &Ai,
+      &PyArray_Type, &Ap,
+      &PyArray_Type, &b,
+      &PyArray_Type, &c,
       &(k->f),
       &(k->l),
-      &convertCone, k,
+      &PyArray_Type, &q,
       &(d->MAX_ITERS), 
       &(d->EPS_ABS),
       &(d->EPS_INFEAS),
       &(d->ALPH),
       &(d->CG_MAX_ITS),
-      &(d->CG_TOL))
-    ) { free_data(d,k); return NULL; }
-  
+      &(d->CG_TOL),
+      &(d->VERBOSE))
+    ) { freeDataAndConeOnly(d,k); return NULL; } 
 #else
-  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O&O&O&O&O&|iiO&iddd", kwlist,
-      &convertDoubleArray, &(d->Ax),
-      &convertIntegerArray, &(d->Ai),
-      &convertIntegerArray, &(d->Ap),
-      &convertPrimalObj, d,
-      &convertDualObj, d,
+  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddi", kwlist,
+      &PyArray_Type, &Ax,
+      &PyArray_Type, &Ai,
+      &PyArray_Type, &Ap,
+      &PyArray_Type, &b,
+      &PyArray_Type, &c,
       &(k->f),
       &(k->l),
-      &convertCone, k,
+      &PyArray_Type, &q,
       &(d->MAX_ITERS), 
       &(d->EPS_ABS),
       &(d->EPS_INFEAS),
-      &(d->ALPH))
-    ) { free_data(d,k); return NULL; }
+      &(d->ALPH),
+      &(d->VERBOSE))
+    ) { freeDataAndConeOnly(d,k); return NULL; }
 #endif
-  // TODO: check that parameter values are correct
-  Sol *tmp = pdos(d, k);
   
-  printData(d);
-  printConeData(k);
-
-  if(tmp) {
-    // TODO: build a new return object in python
-    free_sol(tmp);
+  // check that Ax is a double array (and ensure it's of type "double")
+  if( !PyArray_ISFLOAT(Ax) ) {
+    PyErr_SetString(PDOSError, "Ax must be a numpy array of floats");
+    freeDataAndConeOnly(d,k);
+    return NULL;
   }
-  free_data(d,k);
+  tmp_arr = PyArray_GETCONTIGUOUS(Ax);
+  Ax_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
+  Py_DECREF(tmp_arr);
+  d->Ax = (double *) PyArray_DATA(Ax_arr);
   
-  Py_INCREF(Py_None);
+  // check that Ai is a int array (and ensure it's of type "int")
+  if( !PyArray_ISINTEGER(Ai) ) {
+    PyErr_SetString(PDOSError, "Ai must be a numpy array of ints");
+    Py_DECREF(Ax_arr);
+    freeDataAndConeOnly(d,k);
+    return NULL;
+  }
+  tmp_arr = PyArray_GETCONTIGUOUS(Ai);
+  Ai_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, intType);
+  Py_DECREF(tmp_arr);
+  d->Ai = (int *) PyArray_DATA(Ai_arr);
+  
+  // check that Ap is a int array (and ensure it's of type "int")
+  if( !PyArray_ISINTEGER(Ap) ) {
+    PyErr_SetString(PDOSError, "Ap must be a numpy array of ints");
+    Py_DECREF(Ax_arr); Py_DECREF(Ai_arr);
+    freeDataAndConeOnly(d,k);
+    return NULL;
+  }
+  tmp_arr = PyArray_GETCONTIGUOUS(Ap);
+  Ap_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, intType);
+  Py_DECREF(tmp_arr);
+  d->Ap = (int *) PyArray_DATA(Ap_arr);
+  
+  // check that b is a double array (and ensure it's of type "double")
+  if( !PyArray_ISFLOAT(b) ) {
+    PyErr_SetString(PDOSError, "b must be a numpy array of floats");
+    Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr);
+    freeDataAndConeOnly(d,k);
+    return NULL;
+  }
+  tmp_arr = PyArray_GETCONTIGUOUS(b);
+  b_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
+  Py_DECREF(tmp_arr);
+  d->b = (double *) PyArray_DATA(b_arr);
+  d->m = PyArray_SIZE(b_arr);
+  
+  // check that c is a double array (and ensure it's of type "double")
+  if( !PyArray_ISFLOAT(c) ) {
+    PyErr_SetString(PDOSError, "c must be a numpy array of floats");
+    Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr); Py_DECREF(b_arr);
+    freeDataAndConeOnly(d,k);
+    return NULL;
+  }
+  tmp_arr = PyArray_GETCONTIGUOUS(c);
+  c_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
+  Py_DECREF(tmp_arr);
+  d->c = (double *) PyArray_DATA(c_arr);
+  d->n = PyArray_SIZE(c_arr);
+  
+  // check that q is a int array (and ensure it's of type "double")
+  if(q) {
+    if( !PyArray_ISINTEGER(q) ) {
+      PyErr_SetString(PDOSError, "q must be a numpy array of ints");
+      Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr); Py_DECREF(b_arr); Py_DECREF(c_arr);
+      freeDataAndConeOnly(d,k);
+      return NULL;
+    }
+    tmp_arr = PyArray_GETCONTIGUOUS(q);
+    q_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, intType);
+    Py_DECREF(tmp_arr);
+    k->q = (int *) PyArray_DATA(q_arr);
+    k->qsize = PyArray_SIZE(q_arr);
+  }
+  
+  // TODO: check that parameter values are correct
+  
+  // solve the problem
+  // TODO: preserve the workspace
+  solution = pdos(d, k);
+  
+  npy_intp dims[1];
+  dims[0] = d->n;
+  PyObject *primalSol = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, solution->x);
+  dims[0] = d->m;
+  PyObject *dualSol = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, solution->y);
+  PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:s}","x", primalSol, "y", dualSol, "status", solution->status);
+  // give up ownership to the return dictionary
+  Py_DECREF(primalSol); Py_DECREF(dualSol); 
+  
+  // do some cleanup
+  freeDataAndConeOnly(d,k);
+  Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr); Py_DECREF(b_arr); Py_DECREF(c_arr);
+  if(q_arr)
+    Py_DECREF(q_arr);
 
-  return Py_None;
+  return returnDict;
 }
 
 static PyMethodDef PDOSMethods[] =
@@ -257,6 +268,8 @@ PyMODINIT_FUNC
   m = Py_InitModule("pdos_direct", PDOSMethods);
 #endif
   
+  import_array(); // for numpy support
+  
   if(m == NULL)
     return;
 
@@ -268,5 +281,6 @@ PyMODINIT_FUNC
 
   Py_INCREF(PDOSError);
   PyModule_AddObject(m, "error", PDOSError);
-
+  
+  Py_AtExit(&cleanup);
 }

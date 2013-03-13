@@ -36,6 +36,15 @@ If `make_mex` fails and complains about an incompatible architecture... (pass in
 
 Remember to include this directory in your Matlab path if you wish to use the mex file in your Matlab code.
 
+### Compiling a Python extension
+If you have no trouble with `make`, then this should be straightforward as well. The command
+
+    python setup.py install
+
+should install the two extensions, `pdos_direct` and `pdos_indirect` into your Python directories. You can run python and `import pdos_direct` or `import pdos_indirect` to use the codes. These two modules expose only a single `solve` function.
+
+(XXX.... explain solve) 
+
 Usage in C
 ----------
 If `make` completes successfully, it will produce two static library files,
@@ -109,8 +118,13 @@ TODO List
 Just a random list of items that we might do in the future....
 
 * CVX shim?
-* indirect solver
-* matlab source code
-* python interface
+* mex file interface?
 * compile with -DINDIRECT to get an indirect solver
 * multithreaded version?
+* (Python) need some way of indicating warm start / saving state
+
+Known Issues
+------------
+* When using OSX's built-in version of Python, `setup.py` may attempt to build Power PC versions of the Python extensions. If you upgraded to Xcode 4, then support for Power PC has been removed. In that case, the build process may complain about the Power PC architecture. Simply use the following instead:
+
+    ARCHFLAGS='-arch i386 -arch x86_64' python setup.py install

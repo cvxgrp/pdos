@@ -178,14 +178,14 @@ cs * formKKT(Data * d, Work * w){
 void factorize(Data * d,Work * w){
   tic();
   cs * K = formKKT(d,w);
-  printf("KKT matrix factorization info:\n");
+  if(d->VERBOSE) printf("KKT matrix factorization info:\n");
   double *info;
   choleskyInit(K, w->p->P, &info);
-  amd_info(info);
+  if(d->VERBOSE) amd_info(info);
   int * Pinv = cs_pinv(w->p->P, (w->l)/2);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
-  printf("KKT matrix factorization took %4.2f s\n",tocq());
+  if(d->VERBOSE) printf("KKT matrix factorization took %4.2f s\n",tocq());
   cs_spfree(C);cs_spfree(K);free(Pinv);free(info);
 }
 

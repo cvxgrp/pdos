@@ -51,7 +51,7 @@ Sol * pdos(Data * d, Cone * k)
   struct resid residuals = { -1, -1, -1, -1, -1, -1, -1 };
 
 	Work * w = initWork(d);
-  printHeader();
+  if(d->VERBOSE) printHeader();
   for (i=0; i < d->MAX_ITERS; ++i){             
 		projectLinSys(d,w);
 		relax(d,w);
@@ -87,33 +87,41 @@ Sol * pdos(Data * d, Cone * k)
         STATE = INDETERMINATE;
       break;
     }
-		if (i % 10 == 0) printSummary(d,w,i, &residuals);
+		if (d->VERBOSE && i % 10 == 0) printSummary(d,w,i, &residuals);
 	}
 	Sol * sol = malloc(sizeof(Sol));
 	getSolution(d,w,sol,STATE);
-	printSummary(d,w,i,&residuals);
+  
+	if(d->VERBOSE) printSummary(d,w,i,&residuals);
 	printSol(d,sol);
-	freeWork(w);
+	
+  freeWork(w);
 	return sol;
 }
 
 void free_data(Data * d, Cone * k){
-  if(d->b) free(d->b);
-  if(d->c) free(d->c);
-  if(d->Ax) free(d->Ax);
-  if(d->Ai) free(d->Ai);
-  if(d->Ap) free(d->Ap);
-  if(d) free(d);
-  if(k->q) free(k->q);
-  if(k) free(k);
+  if(d) {
+    if(d->b) free(d->b);
+    if(d->c) free(d->c);
+    if(d->Ax) free(d->Ax);
+    if(d->Ai) free(d->Ai);
+    if(d->Ap) free(d->Ap);
+    free(d);
+  }
+  if(k) {
+    if(k->q) free(k->q);
+    free(k);
+  }
   d = NULL; k = NULL;
 }
 
 void free_sol(Sol *sol){
-  if(sol->x) free(sol->x);
-  if(sol->y) free(sol->y);
-  if(sol->status) free(sol->status);
-  if(sol) free(sol);
+  if(sol) {
+    if(sol->x) free(sol->x);
+    if(sol->y) free(sol->y);
+    if(sol->status) free(sol->status);
+    free(sol);
+  }
   sol = NULL;
 }
 

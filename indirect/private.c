@@ -279,7 +279,7 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
   		qsold_sq = qsnew_sq;
   	}
   }
-	printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
+	if (d->VERBOSE) printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
 }
 
 void projectLinSys(Data * d, Work * w){
