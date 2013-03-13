@@ -212,7 +212,7 @@ static inline void applyAdjoint(const Data *d, const double *x, double *y) {
 
 static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
 	/* warm start cg with previous lambda */  
-	int i, n = d->n + d->m + 1;
+	int i = 0, n = d->n + d->m + 1;
   
   double *p = w->p->p;
   double *q = w->p->q;
@@ -251,31 +251,34 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
 	memcpy(p,q,n*sizeof(double));
   // ||q||^2
 	double qsold_sq=calcNormSq(q,n);
-	for (i=0; i< max_its; i++){
-    // w->ztmp = G^T*p (multiplies by A and A^T)
-    applyAdjoint(d, p, w->ztmp);
-    // alpha = ||q||^2/ ||G^T*p||^2
-		alpha = qsold_sq/calcNormSq(w->ztmp, w->l);
+  if (qsold_sq > tol_sq) {   // only iterate if the residual is small
+  	for (i=0; i< max_its; ++i){
+      // w->ztmp = G^T*p (multiplies by A and A^T)
+      applyAdjoint(d, p, w->ztmp);
+      // alpha = ||q||^2/ ||G^T*p||^2
+  		alpha = qsold_sq/calcNormSq(w->ztmp, w->l);
     
-    // lambda += alpha*p
-    addScaledArray(lambda, p, n, alpha);
+      // lambda += alpha*p
+      addScaledArray(lambda, p, n, alpha);
     
-    // q += (-alpha)*G*w->ztmp
-		accumForward(d, w->ztmp, -alpha, q);    
+      // q += (-alpha)*G*w->ztmp
+  		accumForward(d, w->ztmp, -alpha, q);    
 
-    // ||q||^2
-		qsnew_sq = calcNormSq(q,n);
-		if (qsnew_sq < tol_sq){
-			break;
-		}
+      // ||q||^2
+  		qsnew_sq = calcNormSq(q,n);
+  		if (qsnew_sq < tol_sq){
+        ++i;
+  			break;
+  		}
     
-    // beta = ||q_{i+1}||^2 / ||q_i||^2
-    beta = qsnew_sq / qsold_sq;
-    // p = q + beta*p
-		scaleArray(p,beta,n);     // p = beta*p
-    addScaledArray(p,q,n,1);  // p += q
-		qsold_sq = qsnew_sq;
-	}
+      // beta = ||q_{i+1}||^2 / ||q_i||^2
+      beta = qsnew_sq / qsold_sq;
+      // p = q + beta*p
+  		scaleArray(p,beta,n);     // p = beta*p
+      addScaledArray(p,q,n,1);  // p += q
+  		qsold_sq = qsnew_sq;
+  	}
+  }
 	printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
 }
 

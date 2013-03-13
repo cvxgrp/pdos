@@ -44,6 +44,9 @@ static inline void freeWork(Work * w);
 
 Sol * pdos(Data * d, Cone * k)
 {
+  if(d == NULL || k == NULL) {
+    return NULL;
+  }
 	int i, STATE = INDETERMINATE;
   struct resid residuals = { -1, -1, -1, -1, -1, -1, -1 };
 

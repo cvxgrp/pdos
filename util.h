@@ -9,7 +9,7 @@
 void tic(void); 
 float toc(void); 
 float tocq(void); 
-void printConeData(Data * d,Cone * k);
+void printConeData(Cone * k);
 void printData(Data * d);
 void printAll(Data * d, Work * w);
 

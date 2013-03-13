@@ -19,7 +19,7 @@ float tocq(void) {
   return (float)(tic_timestop - tic_timestart) / CLOCKS_PER_SEC;
 }
 
-void printConeData(Data * d,Cone * k){
+void printConeData(Cone * k){
 	int i;
 	printf("num zeros = %i\n",k->f);
 	printf("num LP = %i\n",k->l);
