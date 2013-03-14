@@ -1,6 +1,8 @@
 *.a
 *.o
 *.dSYM
+*.m~
 
-matlab/
+python/build/
+old_matlab/
 tests/

@@ -4,22 +4,25 @@
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  /* matlab usage: ConeOS(A,b,c,cone,params); */
-  /*
-  if (nrhs != 4){
-    mexErrMsgTxt("Four arguments are required in this order: A, b, c, cone struct");
+  /* matlab usage: pdos(A,b,c,cone,params); */
+  
+  if (nrhs != 3){
+    mexErrMsgTxt("Three arguments are required in this order: data struct, cone struct, params struct");
   }
-  */
+  
   Data * d = malloc(sizeof(Data)); 
-  Cone * k = malloc(sizeof(Cone));   
-  const mxArray * A_mex = prhs[0];
+  Cone * k = malloc(sizeof(Cone)); 
+  const mxArray *data = prhs[0];
+   
+  const mxArray *A_mex = (mxArray *) mxGetField(data,0,"A");
   if (!mxIsSparse(A_mex)){
+    free(d); free(k);
     mexErrMsgTxt("Input matrix A must be in sparse format (pass in sparse(A))");
   }
-  const mxArray * b_mex = prhs[1];
-  const mxArray * c_mex = prhs[2]; 
-  const mxArray * cone = prhs[3];
-  const mxArray * params = prhs[4];
+  const mxArray *b_mex = (mxArray *) mxGetField(data,0,"b");
+  const mxArray *c_mex = (mxArray *) mxGetField(data,0,"c"); 
+  const mxArray *cone = prhs[1];
+  const mxArray *params = prhs[2];
   d->n = *(mxGetDimensions(c_mex));
   d->m = *(mxGetDimensions(b_mex));
 
@@ -30,10 +33,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   //d->UNDET_TOL = (double)*mxGetPr(mxGetField(params,0,"UNDET_TOL"));
   d->MAX_ITERS = (int)*mxGetPr(mxGetField(params,0,"MAX_ITERS"));
   d->EPS_ABS = (double)*mxGetPr(mxGetField(params,0,"EPS_ABS"));
-  //d->EPS_REL = (double)*mxGetPr(mxGetField(params,0,"EPS_REL"));
+  d->EPS_INFEAS = (double)*mxGetPr(mxGetField(params,0,"EPS_INFEAS"));
 
   d->CG_MAX_ITS = (int)*mxGetPr(mxGetField(params,0,"CG_MAX_ITS"));
   d->CG_TOL = (double)*mxGetPr(mxGetField(params,0,"CG_TOL"));
+  d->VERBOSE = (int)*mxGetPr(mxGetField(params,0,"VERBOSE"));
 
   k->f = (int)*mxGetPr(mxGetField(cone,0,"f"));
   k->l = (int)*mxGetPr(mxGetField(cone,0,"l"));
@@ -70,7 +74,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mxSetN(plhs[0], 1); 
 
   plhs[1] = mxCreateDoubleMatrix(0, 0, mxREAL);
-  mxSetPr(plhs[1], sol->z);
+  mxSetPr(plhs[1], sol->y);
   mxSetM(plhs[1], d->m); 
   mxSetN(plhs[1], 1); 
 

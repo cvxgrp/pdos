@@ -1,11 +1,15 @@
 #include "pdos.h"
 #include "run_pdos.h"
 
+#ifndef DEMO_PATH
+#define DEMO_PATH "../data_pdos"
+#endif 
+
 int main(int argc, char **argv)
 {
   tic();
   FILE * fp;
-  if(open_file(argc, argv, 1, "data_pdos", &fp)==-1) return -1;
+  if(open_file(argc, argv, 1, DEMO_PATH, &fp)==-1) return -1;
   Cone * k = malloc(sizeof(Cone));
   Data * d = malloc(sizeof(Data));
   read_in_data(fp,d,k);
@@ -50,6 +54,7 @@ void read_in_data(FILE * fp,Data * d, Cone * k){
   fscanf(fp, "%lf", &(d->EPS_ABS)); 
   fscanf(fp, "%lf", &(d->EPS_INFEAS));
   fscanf(fp, "%lf", &(d->CG_TOL));
+  fscanf(fp, "%i", &(d->VERBOSE));
   
   int Anz;
   fscanf(fp, "%i", &Anz);

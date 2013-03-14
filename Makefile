@@ -26,18 +26,22 @@ indirect/private.o: indirect/private.c
 	$(CC) $(CFLAGS) -c -o $@ $^ 
 
 pdos_direct: $(OBJECTS) direct/private.o
-	$(ARCHIVE) libpdosdir.a $^
-	- $(RANLIB) libpdosdir.a
+	mkdir -p lib
+	$(ARCHIVE) lib/libpdosdir.a $^
+	- $(RANLIB) lib/libpdosdir.a
 
 pdos_indirect: $(OBJECTS) indirect/private.o
-	$(ARCHIVE) libpdosindir.a $^
-	- $(RANLIB) libpdosindir.a
+	mkdir -p lib
+	$(ARCHIVE) lib/libpdosindir.a $^
+	- $(RANLIB) lib/libpdosindir.a
 
 demo_direct: run_pdos.c 
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) libpdosdir.a $(ELIBS) 
+	mkdir -p bin
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o bin/$@ $^ $(LDFLAGS) lib/libpdosdir.a $(ELIBS) 
 
 demo_indirect: run_pdos.c 
-	$(CC) $(CFLAGS) -o $@ $^ libpdosindir.a $(LDFLAGS) 
+	mkdir -p bin
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o bin/$@ $^ lib/libpdosindir.a $(LDFLAGS) 
 
 .PHONY: clean purge
 
@@ -49,3 +53,4 @@ clean:
 purge: clean
 	( cd direct/external/LDL    ; $(MAKE) purge )
 	( cd direct/external/AMD    ; $(MAKE) purge )   
+	@rm -rf bin lib

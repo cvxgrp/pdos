@@ -54,16 +54,17 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    *
    * "A" is a sparse matrix in column compressed storage. "Ax" are the values,
    * "Ai" are the rows, and "Ap" are the column pointers.
-   * Ax is a list of doubles
-   * Ai is a list of ints
-   * Ap is a list of ints
+   * `Ax` is a Numpy array of doubles
+   * `Ai` is a Numpy array of ints
+   * `Ap` is a Numpy array of ints
    *
-   * b is a (dense) list of doubles
-   * c is a (dense) list of doubles
+   * `b` is a (dense) Numpy array of doubles
+   * `c` is a (dense) Numpy array of doubles
    *
-   * f is an integer giving the number of free variables
-   * l is an integer giving the number of nonnegative constraints
-   * q is a list of integers giving the number of cone constraints
+   * `f` is an integer giving the number of free variables
+   * `l` is an integer giving the number of nonnegative constraints
+   * `q` is a Numpy array of integers giving the number of cone constraints
+   *
    * 
    * MAX_ITERS is an integer. Sets the maximum number of ADMM iterations.
    *  Defaults to 2000.
