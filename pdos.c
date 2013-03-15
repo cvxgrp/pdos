@@ -94,7 +94,7 @@ Sol * pdos(Data * d, Cone * k)
   
 	if(d->VERBOSE) {
     printSummary(d,w,i,&residuals);
-	  printSol(d,sol);
+	  //printSol(d,sol);
 	}
   freeWork(w);
 	return sol;
