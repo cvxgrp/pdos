@@ -27,6 +27,10 @@ Installing
 ----------
 Typing `make` at the command line should do the trick. It will produce two libaries, `libpdosdir.a` and `libpdosindir.a` found under the `lib` folder. As a byproduct, it will also produce two demo binaries under the `bin` folder called `demo_direct` and `demo_indirect`.
 
+One caveat: if you have a 32-bit version of Matlab and use the build process
+below (for Matlab), then if you try to make the libraries (on a 64-bit
+machine), you must `make purge` before `make` again.
+
 File an issue with us if the build process fails for you.
 
 ### Compiling a Matlab mex file
