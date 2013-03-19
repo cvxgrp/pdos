@@ -93,6 +93,37 @@ Work * initWork(Data* d){
   w->z = calloc(w->l,sizeof(double));
   w->u = calloc(w->l,sizeof(double));  
   w->ztmp = calloc(w->l,sizeof(double));
+  
+  if(d->NORMALIZE) {
+    int i;
+    int Anz = d->Ap[d->n];
+
+    // scale A,b,c
+    double ds, ps, normA = 0.0;
+    // frobenius norm
+    for(i = 0; i < Anz; ++i) {
+      normA += d->Ax[i]*d->Ax[i]/(d->m*d->n);
+    }
+    normA = sqrt(normA);
+    ds = 1.0/sqrt(normA);
+    ps = 1.0/sqrt(normA);
+
+    for(i = 0; i < Anz; ++i) {
+      d->Ax[i] *= ds*ps;
+    }
+    for(i = 0; i < d->n; ++i) {
+      d->c[i] *= ps;
+    }
+    for(i = 0; i < d->m; ++i) {
+      d->b[i] *= ds;
+    }
+    w->dual_scale = ds;
+    w->primal_scale = ps;
+    
+  } else {
+    w->dual_scale = 1.0;
+    w->primal_scale = 1.0;
+  }
 
   w->p->P = malloc(sizeof(int)*n_plus_m);
   w->p->L = malloc (sizeof (cs));
@@ -185,7 +216,7 @@ void factorize(Data * d,Work * w){
   int * Pinv = cs_pinv(w->p->P, (w->l)/2);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
-  if(d->VERBOSE) printf("KKT matrix factorization took %4.2f s\n",tocq());
+  if(d->VERBOSE) printf("KKT matrix factorization took %4.8fs\n",tocq());
   cs_spfree(C);cs_spfree(K);free(Pinv);free(info);
 }
 

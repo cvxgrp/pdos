@@ -51,7 +51,10 @@ Sol * pdos(Data * d, Cone * k)
   struct resid residuals = { -1, -1, -1, -1, -1, -1, -1 };
 
 	Work * w = initWork(d);
-  if(d->VERBOSE) printHeader();
+  if(d->VERBOSE) {
+    printHeader();
+    tic();
+  }
   for (i=0; i < d->MAX_ITERS; ++i){             
 		projectLinSys(d,w);
 		relax(d,w);
@@ -70,14 +73,14 @@ Sol * pdos(Data * d, Cone * k)
     // err = calcPriResid(d,w);
     // EPS_PRI = sqrt(w->l)*d->EPS_ABS + 
     //       d->EPS_REL*fmax(calcNorm(w->uv,w->l),calcNorm(w->uv_t,w->l));
-    if (residuals.p_res < d->EPS_ABS && 
-        residuals.d_res < d->EPS_ABS && 
+    if (residuals.p_res < d->EPS_ABS*w->dual_scale && 
+        residuals.d_res < d->EPS_ABS*w->primal_scale && 
         residuals.eta < d->EPS_ABS) {
       STATE = SOLVED;
       break;
     }
-    if (residuals.d_inf < d->EPS_INFEAS && 
-        residuals.p_inf < d->EPS_INFEAS && 
+    if (residuals.d_inf < d->EPS_INFEAS*w->dual_scale && 
+        residuals.p_inf < d->EPS_INFEAS*w->primal_scale && 
         residuals.p_obj - residuals.d_obj < -d->EPS_INFEAS /* fix at 1e-2? relative? */) {
       if (residuals.d_obj < d->EPS_INFEAS)
         STATE = UNBOUNDED;
@@ -94,8 +97,21 @@ Sol * pdos(Data * d, Cone * k)
   
 	if(d->VERBOSE) {
     printSummary(d,w,i,&residuals);
+    printf("Total solve time is %4.8fs\n", tocq());
 	  //printSol(d,sol);
 	}
+  if(d->NORMALIZE) {
+    // unscale data
+    for(i = 0; i < d->Ap[d->n]; ++i) {
+      d->Ax[i] /= (w->dual_scale)*(w->primal_scale);
+    }
+    for(i = 0; i < d->n; ++i) {
+      d->c[i] /= w->primal_scale;
+    }
+    for(i = 0; i < d->m; ++i) {
+      d->b[i] /= w->dual_scale;
+    }
+  }
   freeWork(w);
 	return sol;
 }
@@ -193,12 +209,20 @@ static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state){
 
 static inline void sety(Data * d,Work * w, Sol * sol){
 	sol->y = malloc(sizeof(double)*d->m);
-	memcpy(sol->y, w->z + w->yi, d->m*sizeof(double));
+	//memcpy(sol->y, w->z + w->yi, d->m*sizeof(double));
+  int i;
+  for(i = 0; i < d->m; ++i) {
+    sol->y[i] = w->dual_scale * w->z[i + w->yi];
+  }
 }
 
 static inline void setx(Data * d,Work * w, Sol * sol){
 	sol->x = malloc(sizeof(double)*d->n);
-	memcpy(sol->x, w->z, d->n*sizeof(double));
+	//memcpy(sol->x, w->z, d->n*sizeof(double));
+  int i;
+  for(i = 0; i < d->n; ++i) {
+    sol->x[i] = w->primal_scale * w->z[i];
+  }
 }
 
 static inline void relax(Data * d,Work * w){   

@@ -71,9 +71,9 @@ static inline void accumByScaledA(const Data *d, const double *x, const double s
   // assumes memory storage exists for y
   
   /* y += A*x */
-  int p, j, n, m, *Ap, *Ai ;
+  int p, j, n, *Ap, *Ai ;
   double *Ax ;
-  m = d->m; n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
 
   int c1, c2;
   

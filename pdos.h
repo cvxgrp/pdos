@@ -15,7 +15,7 @@ typedef struct PROBLEM_DATA {
   double * b, * c;
   int MAX_ITERS, CG_MAX_ITS;
   double EPS_ABS, EPS_INFEAS, ALPH, CG_TOL;
-  int VERBOSE;  // boolean
+  int VERBOSE, NORMALIZE;  // boolean
 } Data;
 
 typedef struct SOL_VARS {
@@ -36,6 +36,7 @@ typedef struct WORK {
   // double *x_half, *s_half, *r_half, *y_half;
   // double *x, *s, *r, *y;
   // double *r_bar, *y_bar, *x_bar, *s_bar;
+  double dual_scale, primal_scale;  // A = dual_scale*A*primal_scale
   Priv * p;
 } Work;
 
@@ -89,10 +90,7 @@ typedef struct WORK {
 #include "util.h"
 #include "linAlg.h"
 
-//Work * initWork(Data * d);
-//double calcPriResid(Data * d, Work * w);
-//void getSolution(Data* d,Work * w,Sol* sol);
-//void relax(Data * d, Work * w);
+// these are actually library "api"'s
 Sol * pdos(Data * d, Cone * k);
 void free_data(Data *d, Cone *k);
 void free_sol(Sol *sol);

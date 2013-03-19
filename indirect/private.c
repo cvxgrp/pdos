@@ -14,6 +14,36 @@ Work * initWork(Data* d){
   w->u = calloc(w->l,sizeof(double));  
   w->ztmp = calloc(w->l,sizeof(double));
   
+  if(d->NORMALIZE) {
+    int i;
+    int Anz = d->Ap[d->n];
+    // scale A,b,c
+    double ds, ps, normA = 0.0;
+    // frobenius norm
+    for(i = 0; i < Anz; ++i) {
+      normA += d->Ax[i]*d->Ax[i]/(d->m*d->n);
+    }
+    normA = sqrt(normA);
+    ds = 1.0/sqrt(normA);
+    ps = 1.0/sqrt(normA);
+
+    for(i = 0; i < Anz; ++i) {
+      d->Ax[i] *= ds*ps;
+    }
+    for(i = 0; i < d->n; ++i) {
+      d->c[i] *= ps;
+    }
+    for(i = 0; i < d->m; ++i) {
+      d->b[i] *= ds;
+    }
+    w->dual_scale = ds;
+    w->primal_scale = ps;
+    
+  } else {
+    w->dual_scale = 1.0;
+    w->primal_scale = 1.0;
+  }
+  
   w->p->lambda = calloc(n_plus_m + 1, sizeof(double));
   w->p->p = calloc(n_plus_m + 1, sizeof(double));
   w->p->q = calloc(n_plus_m + 1, sizeof(double));

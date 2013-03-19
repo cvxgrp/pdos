@@ -2,6 +2,8 @@
 #include "pdos.h"
 #include "numpy/arrayobject.h"
 
+// TODO: when normalizing, make a copy
+
 /* WARNING: this code uses numpy array types
  *
  * WARNING: this code also does not check that the data for the matrix A is
@@ -48,7 +50,7 @@ static void cleanup()
 static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
 {
   /* Expects a function call 
-   *     sol = solve(Ax, Ai, Ap, b, c, f=,l=,q=, MAX_ITERS=, EPS_ABS=, EPS_INFEAS=, ALPHA=, VERBOSE=)
+   *     sol = solve(Ax, Ai, Ap, b, c, f=,l=,q=, MAX_ITERS=, EPS_ABS=, EPS_INFEAS=, ALPHA=, VERBOSE=, NORMALIZE=)
    * The uppercase keywords are optional. If INDIRECT is #define'd, then
    * CG_MAX_ITS and CG_TOL are also optional keyword arguments.
    *
@@ -76,6 +78,8 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    *  parameter. Defaults to 1.0.
    * VERBOSE is an integer (or Boolean) either 0 or 1. Sets the verbosity of
    *  the solver. Defaults to 1 (or True).
+   * NORMALIZE is an integer (or Boolean) either 0 or 1. Tells the solver to
+   *  normalize the data. Defaults to 0 (or False).
    *
    * CG_MAX_ITS is an integer. Sets the maximum number of CG iterations.
    *  Defaults to 20.
@@ -89,9 +93,9 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
      
      
 #ifdef INDIRECT
-  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "CG_MAX_ITS", "CG_TOL", "VERBOSE", NULL};
+  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "CG_MAX_ITS", "CG_TOL", "VERBOSE", "NORMALIZE", NULL};
 #else
-  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "VERBOSE", NULL};
+  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "VERBOSE", "NORMALIZE", NULL};
 #endif
   Data *d = calloc(1,sizeof(Data)); // sets everything to 0
   Cone *k = calloc(1,sizeof(Cone)); // sets everything to 0
@@ -99,6 +103,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   d->EPS_ABS = 1e-4;
   d->EPS_INFEAS = 5e-5;
   d->ALPH = 1.0;
+  d->VERBOSE = 1;
 #ifdef INDIRECT
   d->CG_MAX_ITS = 20;
   d->CG_TOL = 1e-3;
@@ -112,7 +117,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   int doubleType = getDoubleType();
   
 #ifdef INDIRECT
-  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddidi", kwlist,
+  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddidii", kwlist,
       &PyArray_Type, &Ax,
       &PyArray_Type, &Ai,
       &PyArray_Type, &Ap,
@@ -127,10 +132,11 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       &(d->ALPH),
       &(d->CG_MAX_ITS),
       &(d->CG_TOL),
-      &(d->VERBOSE))
+      &(d->VERBOSE),
+      &(d->NORMALIZE))
     ) { freeDataAndConeOnly(d,k); return NULL; } 
 #else
-  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddi", kwlist,
+  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddii", kwlist,
       &PyArray_Type, &Ax,
       &PyArray_Type, &Ai,
       &PyArray_Type, &Ap,
@@ -143,7 +149,8 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       &(d->EPS_ABS),
       &(d->EPS_INFEAS),
       &(d->ALPH),
-      &(d->VERBOSE))
+      &(d->VERBOSE),
+      &(d->NORMALIZE))
     ) { freeDataAndConeOnly(d,k); return NULL; }
 #endif
   
@@ -193,7 +200,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   b_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
   Py_DECREF(tmp_arr);
   d->b = (double *) PyArray_DATA(b_arr);
-  d->m = PyArray_SIZE(b_arr);
+  d->m = (int) PyArray_SIZE(b_arr); // loses precision
   
   // check that c is a double array (and ensure it's of type "double")
   if( !PyArray_ISFLOAT(c) ) {
@@ -206,7 +213,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   c_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
   Py_DECREF(tmp_arr);
   d->c = (double *) PyArray_DATA(c_arr);
-  d->n = PyArray_SIZE(c_arr);
+  d->n = (int) PyArray_SIZE(c_arr); // loses precision
   
   // check that q is a int array (and ensure it's of type "double")
   if(q) {
@@ -220,7 +227,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     q_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, intType);
     Py_DECREF(tmp_arr);
     k->q = (int *) PyArray_DATA(q_arr);
-    k->qsize = PyArray_SIZE(q_arr);
+    k->qsize = (int) PyArray_SIZE(q_arr); // loses precision
   }
   
   // TODO: check that parameter values are correct

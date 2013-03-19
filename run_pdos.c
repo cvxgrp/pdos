@@ -55,6 +55,7 @@ void read_in_data(FILE * fp,Data * d, Cone * k){
   fscanf(fp, "%lf", &(d->EPS_INFEAS));
   fscanf(fp, "%lf", &(d->CG_TOL));
   fscanf(fp, "%i", &(d->VERBOSE));
+  fscanf(fp, "%i", &(d->NORMALIZE));
   
   int Anz;
   fscanf(fp, "%i", &Anz);

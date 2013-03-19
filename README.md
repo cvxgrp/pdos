@@ -155,6 +155,7 @@ Just a random list of items that we might do in the future....
 * compile with -DINDIRECT to get an indirect solver
 * multithreaded version?
 * (Python) need some way of indicating warm start / saving state
+* the Data struct isn't constant; meaning, we actually modify A,b, and c if NORMALIZE is set to true
 
 Known Issues
 ------------
