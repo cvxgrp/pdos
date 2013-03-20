@@ -210,7 +210,7 @@ static inline void applyAdjoint(const Data *d, const double *x, double *y) {
   const double *input1 = x;
   const double *input2 = x + d->m;
   const double input3 = x[d->m + d->n];
-  //printf("%f\n",input3);
+  //pdos_printf("%f\n",input3);
   
   // assumes y is an 2*(n+m) vector
   double *output1 = y;
@@ -258,14 +258,14 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
   q[d->n + d->m] = 0;
   
   // for(i = 0; i < n; i++) {
-  //   printf("lamda[%d] = %f\n", i, lambda[i]);
+  //   pdos_printf("lamda[%d] = %f\n", i, lambda[i]);
   // }
   
   // w->ztmp = G^T*lambda (use previous lambda to warmstart)
   applyAdjoint(d, lambda, w->ztmp);
   
   // for(i = 0; i < w->l; i++) {
-  //   printf("G'lam[%d] = %f\n", i, w->ztmp[i]);
+  //   pdos_printf("G'lam[%d] = %f\n", i, w->ztmp[i]);
   // }
   
   // w->ztmp += w->z_half
@@ -274,7 +274,7 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
   accumForward(d, w->ztmp, -1, q);
   
   // for(i = 0; i < n; i++) {
-  //   printf("q[%d] = %f\n", i, q[i]);
+  //   pdos_printf("q[%d] = %f\n", i, q[i]);
   // }
   
   // p = q
@@ -309,7 +309,7 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
   		qsold_sq = qsnew_sq;
   	}
   }
-	if (d->VERBOSE) printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
+	if (d->VERBOSE) pdos_printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
 }
 
 void projectLinSys(Data * d, Work * w){

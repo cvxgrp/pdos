@@ -28,4 +28,8 @@ Work * initWork(Data * d);
 void freePriv(Work * w);
 //cs * formKKT(Data * d, Work * w);
 //void factorize(Data * d,Work * w);
+
+extern void amd_info (double Info [ ]);
+extern int amd_order (int n, const int Ap [ ], const int Ai [ ], int P [ ], double Control [ ], double Info [ ]);
+
 #endif

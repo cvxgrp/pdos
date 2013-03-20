@@ -209,20 +209,30 @@ cs * formKKT(Data * d, Work * w){
 void factorize(Data * d,Work * w){
   tic();
   cs * K = formKKT(d,w);
-  if(d->VERBOSE) printf("KKT matrix factorization info:\n");
+  if(d->VERBOSE) pdos_printf("KKT matrix factorization info:\n");
   double *info;
   choleskyInit(K, w->p->P, &info);
-  if(d->VERBOSE) amd_info(info);
+  if(d->VERBOSE) {
+#ifdef DLONG
+    amd_l_info(info);
+#else
+    amd_info(info);
+#endif
+  }
   int * Pinv = cs_pinv(w->p->P, (w->l)/2);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
-  if(d->VERBOSE) printf("KKT matrix factorization took %4.8fs\n",tocq());
+  if(d->VERBOSE) pdos_printf("KKT matrix factorization took %4.8fs\n",tocq());
   cs_spfree(C);cs_spfree(K);free(Pinv);free(info);
 }
 
 void choleskyInit(cs * A, int P[], double **info) {
 	*info  = (double *) malloc(AMD_INFO * sizeof(double));
+#ifdef DLONG
+	amd_l_order(A->n, A->p, A->i, P, (double *) NULL, *info);
+#else
 	amd_order(A->n, A->p, A->i, P, (double *) NULL, *info);
+#endif
 }
 
 void choleskyFactor(cs * A, int P[], int Pinv[], cs **L , double **D) 

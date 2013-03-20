@@ -110,5 +110,7 @@ Work * initWork(Data * d);
 void projectLinSys(Data * d, Work * w);
 void freePriv(Work * w);
 
+// private printf
+extern int (*pdos_printf) (const char *, ...) ;
 
 #endif

@@ -1,4 +1,17 @@
 #include "pdos.h"
+
+// redefine printfs as needed
+#ifdef MATLAB_MEX_FILE
+#include "mex.h"
+int (*pdos_printf) (const char *, ...) = mexPrintf ;
+#elif defined PYTHON
+#include <Python.h>
+int (*pdos_printf) (const char *, ...) = PySys_WriteStdout ;
+#else
+#include <stdio.h>
+int (*pdos_printf) (const char *, ...) = printf ;
+#endif
+
 // constants and data structures
 static const char* HEADER[] = {
   "Iter", 
@@ -97,7 +110,7 @@ Sol * pdos(Data * d, Cone * k)
   
 	if(d->VERBOSE) {
     printSummary(d,w,i,&residuals);
-    printf("Total solve time is %4.8fs\n", tocq());
+    pdos_printf("Total solve time is %4.8fs\n", tocq());
 	  //printSol(d,sol);
 	}
   if(d->NORMALIZE) {
@@ -153,15 +166,15 @@ static inline void freeWork(Work * w){
 
 static inline void printSol(Data * d, Sol * sol){
 	int i;
-	printf("%s\n",sol->status); 
+	pdos_printf("%s\n",sol->status); 
 	if (sol->x != NULL){
 		for ( i=0;i<d->n; ++i){
-			printf("x[%i] = %4f\n",i, sol->x[i]);
+			pdos_printf("x[%i] = %4f\n",i, sol->x[i]);
 		}
 	}
 	if (sol->y != NULL){
 		for ( i=0;i<d->m; ++i){
-			printf("y[%i] = %4f\n",i, sol->y[i]);
+			pdos_printf("y[%i] = %4f\n",i, sol->y[i]);
 		}
 	}
 }
@@ -233,28 +246,28 @@ static inline void relax(Data * d,Work * w){
 }
 
 static inline void printSummary(Data * d,Work * w,int i, struct resid *r){
-	// printf("Iteration %i, primal residual %4f, primal tolerance %4f\n",i,err,EPS_PRI);
-  printf("%*i | ", (int)strlen(HEADER[0]), i);
-  printf("%*.4f   ", (int)strlen(HEADER[1]), r->p_res); // p_res
-  printf("%*.4f   ", (int)strlen(HEADER[2]), r->d_res); // d_res
-  printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_inf); // full(p_inf));
-  printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_inf);//full(d_inf));
-  printf("%*.4f   ", (int)strlen(HEADER[5]), r->p_obj);//full(p_obj));
-  printf("%*.4f   ", (int)strlen(HEADER[6]), r->d_obj);//full(d_obj));
-  printf("%*.4f\n", (int)strlen(HEADER[7]), r->eta);//full(eta));
+	// pdos_printf("Iteration %i, primal residual %4f, primal tolerance %4f\n",i,err,EPS_PRI);
+  pdos_printf("%*i | ", (int)strlen(HEADER[0]), i);
+  pdos_printf("%*.4f   ", (int)strlen(HEADER[1]), r->p_res); // p_res
+  pdos_printf("%*.4f   ", (int)strlen(HEADER[2]), r->d_res); // d_res
+  pdos_printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_inf); // full(p_inf));
+  pdos_printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_inf);//full(d_inf));
+  pdos_printf("%*.4f   ", (int)strlen(HEADER[5]), r->p_obj);//full(p_obj));
+  pdos_printf("%*.4f   ", (int)strlen(HEADER[6]), r->d_obj);//full(d_obj));
+  pdos_printf("%*.4f\n", (int)strlen(HEADER[7]), r->eta);//full(eta));
 }
 
 static inline void printHeader() {
   int i, line_len;
   line_len = 0;
   for(i = 0; i < HEADER_LEN - 1; ++i) {
-    printf("%s | ", HEADER[i]);
+    pdos_printf("%s | ", HEADER[i]);
     line_len += strlen(HEADER[i]) + 3;
   }
-  printf("%s\n", HEADER[HEADER_LEN-1]);
+  pdos_printf("%s\n", HEADER[HEADER_LEN-1]);
   line_len += strlen(HEADER[HEADER_LEN-1]);
   for(i = 0; i < line_len; ++i) {
-    printf("=");
+    pdos_printf("=");
   }
-  printf("\n");
+  pdos_printf("\n");
 }
