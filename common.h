@@ -49,8 +49,8 @@ inline Work *commonWorkInit(Data *d) {
       normA += d->Ax[i]*d->Ax[i]/(d->m*d->n);
     }
     normA = sqrt(normA);
-    ds = pow((double)(d->m)/normA, (double)(d->m)/((double)(d->m + d->n)));
-    ps = pow((double)(d->n)/normA, (double)(d->n)/((double)(d->m + d->n)));
+    ds = pow((double)(1.0)/normA, (double)(d->n)/((double)(d->m + d->n)));
+    ps = pow((double)(1.0)/normA, (double)(d->m)/((double)(d->m + d->n)));
 
     for(i = 0; i < Anz; ++i) {
       d->Ax[i] *= ds*ps;

@@ -5,30 +5,54 @@ AMD_SOURCE = $(wildcard direct/amd_*.c)
 DIRECT_OBJECTS = direct/ldl.o $(AMD_SOURCE:.c=.o) 
 TARGETS = demo_direct demo_indirect
 
-default: pdos_direct pdos_indirect demo_direct demo_indirect
+.PHONY: default 
+	#lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
+default: lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
 
-%.o : %.h
+pdos.o 		: pdos.h
+linAlg.o 	: linAlg.h
+common.o	: common.h
+util.o		: util.h
+cones.o		: cones.h
+cs.o			: cs.h
 
-pdos_direct: $(OBJECTS) direct/private.o  $(DIRECT_OBJECTS)
+direct/private.o				: direct/private.h
+direct/ldl.o						: direct/ldl.h
+direct/amd_1.o					: direct/amd_internal.h direct/amd.h
+direct/amd_2.o					: direct/amd_internal.h direct/amd.h
+direct/amd_aat.o				: direct/amd_internal.h direct/amd.h
+direct/amd_control.o		: direct/amd_internal.h direct/amd.h
+direct/amd_defaults.o 	: direct/amd_internal.h direct/amd.h
+direct/amd_dump.o				: direct/amd_internal.h direct/amd.h
+direct/amd_global.o			: direct/amd_internal.h direct/amd.h
+direct/amd_info.o				: direct/amd_internal.h direct/amd.h
+direct/amd_order.o			: direct/amd_internal.h direct/amd.h
+direct/amd_post_tree.o	: direct/amd_internal.h direct/amd.h
+direct/amd_postorder.o	: direct/amd_internal.h direct/amd.h
+direct/amd_preprocess.o	: direct/amd_internal.h direct/amd.h
+direct/amd_valid.o			: direct/amd_internal.h direct/amd.h
+
+indirect/private.o	: indirect/private.h
+
+lib/libpdosdir.a: $(OBJECTS) direct/private.o  $(DIRECT_OBJECTS)
 	mkdir -p lib
 	$(ARCHIVE) lib/libpdosdir.a $^
 	- $(RANLIB) lib/libpdosdir.a
 
-pdos_indirect: $(OBJECTS) indirect/private.o
+lib/libpdosindir.a: $(OBJECTS) indirect/private.o
 	mkdir -p lib
 	$(ARCHIVE) lib/libpdosindir.a $^
 	- $(RANLIB) lib/libpdosindir.a
 
-demo_direct: run_pdos.c 
+bin/demo_direct: run_pdos.c lib/libpdosdir.a
 	mkdir -p bin
-	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o bin/$@ $^ lib/libpdosdir.a $(LDFLAGS) 
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS) 
 
-demo_indirect: run_pdos.c 
+bin/demo_indirect: run_pdos.c lib/libpdosindir.a
 	mkdir -p bin
-	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o bin/$@ $^ lib/libpdosindir.a $(LDFLAGS) 
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS) 
 
 .PHONY: clean purge
-
 clean:
 	@rm -rf $(TARGETS) $(OBJECTS) $(DIRECT_OBJECTS) direct/private.o indirect/private.o
 
