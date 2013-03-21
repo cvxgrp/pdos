@@ -2,11 +2,10 @@ include pdos.mk
 
 # libraries for AMD and LDL, needed for direct method:
 EINCS = -Idirect/external/LDL/Include -Idirect/external/AMD/Include -Idirect/external/SuiteSparse_config 
-ELIBS = direct/external/AMD/Lib/libamd.a direct/external/LDL/Lib/libldl.a
+AMD_LIB = direct/external/AMD/Lib/libamd.a 
+LDL_LIB = direct/external/LDL/Lib/libldl.a
 
-HEADERS = pdos.h linAlg.h util.h cones.h cs.h
-SOURCES = $(HEADERS:.h=.c)
-OBJECTS = $(HEADERS:.h=.o)
+OBJECTS = pdos.o linAlg.o common.o util.o cones.o cs.o
 TARGETS = demo_direct demo_indirect
 
 default: amd ldl pdos_direct pdos_indirect demo_direct demo_indirect
@@ -19,13 +18,20 @@ amd:
 ldl:
 	(cd direct/external/LDL ; $(MAKE))
 
-direct/private.o: direct/private.c
-	$(CC) $(CFLAGS) $(EINCS) -c -o $@ $^ 
+pdos.o 		: pdos.h
+common.o	: common.h
+linAlg.o	: linAlg.h
+util.o		: util.h
+cones.o		: cones.h
+cs.o			: cs.h
 
-indirect/private.o: indirect/private.c
-	$(CC) $(CFLAGS) -c -o $@ $^ 
+direct/private.o: direct/private.c direct/private.h
+	$(CC) $(CFLAGS) $(EINCS) -c -o $@ direct/private.c
 
-pdos_direct: $(OBJECTS) direct/private.o
+indirect/private.o: indirect/private.c indirect/private.h
+	$(CC) $(CFLAGS) -c -o $@ indirect/private.c
+
+pdos_direct: $(OBJECTS) direct/private.o $(AMD_LIB) $(LDL_LIB)
 	mkdir -p lib
 	$(ARCHIVE) lib/libpdosdir.a $^
 	- $(RANLIB) lib/libpdosdir.a
@@ -37,7 +43,7 @@ pdos_indirect: $(OBJECTS) indirect/private.o
 
 demo_direct: run_pdos.c 
 	mkdir -p bin
-	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o bin/$@ $^ $(LDFLAGS) lib/libpdosdir.a $(ELIBS) 
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o bin/$@ $^ lib/libpdosdir.a $(LDFLAGS) 
 
 demo_indirect: run_pdos.c 
 	mkdir -p bin

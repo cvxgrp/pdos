@@ -1,28 +1,5 @@
 #include "pdos.h"
 
-// redefine printfs and memory allocators as needed
-#ifdef MATLAB_MEX_FILE
-#include "mex.h"
-int (*pdos_printf) (const char *, ...) = mexPrintf ;
-void (*pdos_free) (void *) = mxFree ;
-void *(*pdos_malloc) (size_t) = mxMalloc ;
-void *(*pdos_calloc) (size_t, size_t) = mxCalloc ;
-#elif defined PYTHON
-#include <Python.h>
-#include <stdlib.h>
-int (*pdos_printf) (const char *, ...) = PySys_WriteStdout ;
-void (*pdos_free) (void *) = free ;
-void *(*pdos_malloc) (size_t) = malloc ;
-void *(*pdos_calloc) (size_t, size_t) = calloc ;
-#else
-#include <stdio.h>
-#include <stdlib.h>
-int (*pdos_printf) (const char *, ...) = printf ;
-void (*pdos_free) (void *) = free ;
-void *(*pdos_malloc) (size_t) = malloc ;
-void *(*pdos_calloc) (size_t, size_t) = calloc ;
-#endif
-
 // constants and data structures
 static const char* HEADER[] = {
   "Iter", 
@@ -116,12 +93,12 @@ Sol * pdos(Data * d, Cone * k)
     }
 		if (d->VERBOSE && i % 10 == 0) printSummary(d,w,i, &residuals);
 	}
-	Sol * sol = pdos_malloc(sizeof(Sol));
+	Sol * sol = PDOS_malloc(sizeof(Sol));
 	getSolution(d,w,sol,STATE);
   
 	if(d->VERBOSE) {
     printSummary(d,w,i,&residuals);
-    pdos_printf("Total solve time is %4.8fs\n", tocq());
+    PDOS_printf("Total solve time is %4.8fs\n", tocq());
 	  //printSol(d,sol);
 	}
   if(d->NORMALIZE) {
@@ -142,50 +119,50 @@ Sol * pdos(Data * d, Cone * k)
 
 void free_data(Data * d, Cone * k){
   if(d) {
-    if(d->b) pdos_free(d->b);
-    if(d->c) pdos_free(d->c);
-    if(d->Ax) pdos_free(d->Ax);
-    if(d->Ai) pdos_free(d->Ai);
-    if(d->Ap) pdos_free(d->Ap);
-    pdos_free(d);
+    if(d->b) PDOS_free(d->b);
+    if(d->c) PDOS_free(d->c);
+    if(d->Ax) PDOS_free(d->Ax);
+    if(d->Ai) PDOS_free(d->Ai);
+    if(d->Ap) PDOS_free(d->Ap);
+    PDOS_free(d);
   }
   if(k) {
-    if(k->q) pdos_free(k->q);
-    pdos_free(k);
+    if(k->q) PDOS_free(k->q);
+    PDOS_free(k);
   }
   d = NULL; k = NULL;
 }
 
 void free_sol(Sol *sol){
   if(sol) {
-    if(sol->x) pdos_free(sol->x);
-    if(sol->y) pdos_free(sol->y);
-    if(sol->status) pdos_free(sol->status);
-    pdos_free(sol);
+    if(sol->x) PDOS_free(sol->x);
+    if(sol->y) PDOS_free(sol->y);
+    if(sol->status) PDOS_free(sol->status);
+    PDOS_free(sol);
   }
   sol = NULL;
 }
 
 static inline void freeWork(Work * w){
   freePriv(w);
-  pdos_free(w->z_half);
-  pdos_free(w->z);
-  pdos_free(w->u);
-  pdos_free(w->ztmp);
-  pdos_free(w);
+  PDOS_free(w->z_half);
+  PDOS_free(w->z);
+  PDOS_free(w->u);
+  PDOS_free(w->ztmp);
+  PDOS_free(w);
 }
 
 static inline void printSol(Data * d, Sol * sol){
 	int i;
-	pdos_printf("%s\n",sol->status); 
+	PDOS_printf("%s\n",sol->status); 
 	if (sol->x != NULL){
 		for ( i=0;i<d->n; ++i){
-			pdos_printf("x[%i] = %4f\n",i, sol->x[i]);
+			PDOS_printf("x[%i] = %4f\n",i, sol->x[i]);
 		}
 	}
 	if (sol->y != NULL){
 		for ( i=0;i<d->m; ++i){
-			pdos_printf("y[%i] = %4f\n",i, sol->y[i]);
+			PDOS_printf("y[%i] = %4f\n",i, sol->y[i]);
 		}
 	}
 }
@@ -232,7 +209,7 @@ static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state){
 }
 
 static inline void sety(Data * d,Work * w, Sol * sol){
-	sol->y = pdos_malloc(sizeof(double)*d->m);
+	sol->y = PDOS_malloc(sizeof(double)*d->m);
 	//memcpy(sol->y, w->z + w->yi, d->m*sizeof(double));
   int i;
   for(i = 0; i < d->m; ++i) {
@@ -241,7 +218,7 @@ static inline void sety(Data * d,Work * w, Sol * sol){
 }
 
 static inline void setx(Data * d,Work * w, Sol * sol){
-	sol->x = pdos_malloc(sizeof(double)*d->n);
+	sol->x = PDOS_malloc(sizeof(double)*d->n);
 	//memcpy(sol->x, w->z, d->n*sizeof(double));
   int i;
   for(i = 0; i < d->n; ++i) {
@@ -257,28 +234,28 @@ static inline void relax(Data * d,Work * w){
 }
 
 static inline void printSummary(Data * d,Work * w,int i, struct resid *r){
-	// pdos_printf("Iteration %i, primal residual %4f, primal tolerance %4f\n",i,err,EPS_PRI);
-  pdos_printf("%*i | ", (int)strlen(HEADER[0]), i);
-  pdos_printf("%*.4f   ", (int)strlen(HEADER[1]), r->p_res); // p_res
-  pdos_printf("%*.4f   ", (int)strlen(HEADER[2]), r->d_res); // d_res
-  pdos_printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_inf); // full(p_inf));
-  pdos_printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_inf);//full(d_inf));
-  pdos_printf("%*.4f   ", (int)strlen(HEADER[5]), r->p_obj);//full(p_obj));
-  pdos_printf("%*.4f   ", (int)strlen(HEADER[6]), r->d_obj);//full(d_obj));
-  pdos_printf("%*.4f\n", (int)strlen(HEADER[7]), r->eta);//full(eta));
+	// PDOS_printf("Iteration %i, primal residual %4f, primal tolerance %4f\n",i,err,EPS_PRI);
+  PDOS_printf("%*i | ", (int)strlen(HEADER[0]), i);
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[1]), r->p_res); // p_res
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[2]), r->d_res); // d_res
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_inf); // full(p_inf));
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_inf);//full(d_inf));
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[5]), r->p_obj);//full(p_obj));
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[6]), r->d_obj);//full(d_obj));
+  PDOS_printf("%*.4f\n", (int)strlen(HEADER[7]), r->eta);//full(eta));
 }
 
 static inline void printHeader() {
   int i, line_len;
   line_len = 0;
   for(i = 0; i < HEADER_LEN - 1; ++i) {
-    pdos_printf("%s | ", HEADER[i]);
+    PDOS_printf("%s | ", HEADER[i]);
     line_len += strlen(HEADER[i]) + 3;
   }
-  pdos_printf("%s\n", HEADER[HEADER_LEN-1]);
+  PDOS_printf("%s\n", HEADER[HEADER_LEN-1]);
   line_len += strlen(HEADER[HEADER_LEN-1]);
   for(i = 0; i < line_len; ++i) {
-    pdos_printf("=");
+    PDOS_printf("=");
   }
-  pdos_printf("\n");
+  PDOS_printf("\n");
 }

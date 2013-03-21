@@ -1,52 +1,15 @@
 #include "private.h"
+#include "common.h"
 
 Work * initWork(Data* d){
   
   int n_plus_m = d->n + d->m;
-  Work * w = pdos_malloc(sizeof(Work));
-  w->p = pdos_malloc(sizeof(Priv));
-  w->l = 2*n_plus_m;
-  w->si = d->n;
-  w->ri = n_plus_m;
-  w->yi = n_plus_m + d->n;
-  w->z_half = pdos_malloc(sizeof(double)*w->l);
-  w->z = pdos_calloc(w->l,sizeof(double));
-  w->u = pdos_calloc(w->l,sizeof(double));  
-  w->ztmp = pdos_calloc(w->l,sizeof(double));
+  Work * w = commonWorkInit(d);
+  w->p = PDOS_malloc(sizeof(Priv));
   
-  if(d->NORMALIZE) {
-    int i;
-    int Anz = d->Ap[d->n];
-    // scale A,b,c
-    double ds, ps, normA = 0.0;
-    // frobenius norm
-    for(i = 0; i < Anz; ++i) {
-      normA += d->Ax[i]*d->Ax[i]/(d->m*d->n);
-    }
-    normA = sqrt(normA);
-    ds = 1.0/sqrt(normA);
-    ps = 1.0/sqrt(normA);
-
-    for(i = 0; i < Anz; ++i) {
-      d->Ax[i] *= ds*ps;
-    }
-    for(i = 0; i < d->n; ++i) {
-      d->c[i] *= ps;
-    }
-    for(i = 0; i < d->m; ++i) {
-      d->b[i] *= ds;
-    }
-    w->dual_scale = ds;
-    w->primal_scale = ps;
-    
-  } else {
-    w->dual_scale = 1.0;
-    w->primal_scale = 1.0;
-  }
-  
-  w->p->lambda = pdos_calloc(n_plus_m + 1, sizeof(double));
-  w->p->p = pdos_calloc(n_plus_m + 1, sizeof(double));
-  w->p->q = pdos_calloc(n_plus_m + 1, sizeof(double));
+  w->p->lambda = PDOS_calloc(n_plus_m + 1, sizeof(double));
+  w->p->p = PDOS_calloc(n_plus_m + 1, sizeof(double));
+  w->p->q = PDOS_calloc(n_plus_m + 1, sizeof(double));
   
   return w;
 }
@@ -111,11 +74,11 @@ Work * initWork(Data* d){
 //   }
 //   Q->nz = kk;
 //   w->p->Q = cs_compress(Q);
-//   cs_sppdos_free(Q);
+//   cs_spPDOS_free(Q);
 // }
 
 void freePriv(Work * w){
-  pdos_free(w->p->lambda); pdos_free(w->p->p); pdos_free(w->p->q); pdos_free(w->p);
+  PDOS_free(w->p->lambda); PDOS_free(w->p->p); PDOS_free(w->p->q); PDOS_free(w->p);
 }
 
 static inline void prepZHalfVariable(Data *d, Work *w) {
@@ -210,7 +173,7 @@ static inline void applyAdjoint(const Data *d, const double *x, double *y) {
   const double *input1 = x;
   const double *input2 = x + d->m;
   const double input3 = x[d->m + d->n];
-  //pdos_printf("%f\n",input3);
+  //PDOS_printf("%f\n",input3);
   
   // assumes y is an 2*(n+m) vector
   double *output1 = y;
@@ -258,14 +221,14 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
   q[d->n + d->m] = 0;
   
   // for(i = 0; i < n; i++) {
-  //   pdos_printf("lamda[%d] = %f\n", i, lambda[i]);
+  //   PDOS_printf("lamda[%d] = %f\n", i, lambda[i]);
   // }
   
   // w->ztmp = G^T*lambda (use previous lambda to warmstart)
   applyAdjoint(d, lambda, w->ztmp);
   
   // for(i = 0; i < w->l; i++) {
-  //   pdos_printf("G'lam[%d] = %f\n", i, w->ztmp[i]);
+  //   PDOS_printf("G'lam[%d] = %f\n", i, w->ztmp[i]);
   // }
   
   // w->ztmp += w->z_half
@@ -274,7 +237,7 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
   accumForward(d, w->ztmp, -1, q);
   
   // for(i = 0; i < n; i++) {
-  //   pdos_printf("q[%d] = %f\n", i, q[i]);
+  //   PDOS_printf("q[%d] = %f\n", i, q[i]);
   // }
   
   // p = q
@@ -309,7 +272,7 @@ static inline void cgCustom(const Data *d, Work *w, int max_its,double tol){
   		qsold_sq = qsnew_sq;
   	}
   }
-	if (d->VERBOSE) pdos_printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
+	if (d->VERBOSE) PDOS_printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
 }
 
 void projectLinSys(Data * d, Work * w){

@@ -90,6 +90,7 @@ typedef struct WORK {
 #include "cones.h"
 #include "util.h"
 #include "linAlg.h"
+#include "common.h"
 
 // these are actually library "api"'s
 Sol * pdos(Data * d, Cone * k);
@@ -111,10 +112,5 @@ Work * initWork(Data * d);
 void projectLinSys(Data * d, Work * w);
 void freePriv(Work * w);
 
-// private printf and memory managers
-extern int (*pdos_printf) (const char *, ...) ;
-extern void (*pdos_free) (void *);
-extern void *(*pdos_malloc) (size_t);
-extern void *(*pdos_calloc) (size_t, size_t);
 
 #endif

@@ -1,4 +1,6 @@
 #include "cs.h"
+#include "common.h"
+
 /* NB: this is a subset of the routines in the CSPARSE package by
   Tim Davis et. al., for the full package please visit 
   http://www.cise.ufl.edu/research/sparse/CSparse/ */
@@ -6,6 +8,25 @@
 
 #define CS_MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define CS_MIN(a,b) (((a) < (b)) ? (a) : (b))
+
+/* wrapper for malloc */
+static inline void *cs_malloc (int n, int size)
+{
+    return (PDOS_malloc (n * size)) ;
+}
+
+/* wrapper for calloc */
+static inline void *cs_calloc (int n, int size)
+{
+    return (PDOS_calloc (n, size)) ;
+}
+
+/* wrapper for free */
+static inline void *cs_free (void *p)
+{
+    if (p) PDOS_free (p) ;       /* free p if it is not already NULL */
+    return (NULL) ;         /* return NULL to simplify the use of cs_free */
+}
 
 /* C = compressed-column form of a triplet matrix T */
 cs *cs_compress (const cs *T)
@@ -33,25 +54,6 @@ cs *cs_done (cs *C, void *w, void *x, int ok)
     cs_free (w) ;                       /* free workspace */
     cs_free (x) ;
     return (ok ? C : cs_spfree (C)) ;   /* return result if OK, else free it */
-}
-
-/* wrapper for malloc */
-void *cs_malloc (int n, int size)
-{
-    return (pdos_malloc (n * size)) ;
-}
-
-/* wrapper for calloc */
-void *cs_calloc (int n, int size)
-{
-    return (pdos_calloc (n, size)) ;
-}
-
-/* wrapper for free */
-void *cs_free (void *p)
-{
-    if (p) pdos_free (p) ;       /* free p if it is not already NULL */
-    return (NULL) ;         /* return NULL to simplify the use of cs_free */
 }
 
 cs *cs_spalloc (int m, int n, int nzmax, int values, int triplet)

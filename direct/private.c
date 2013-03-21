@@ -1,4 +1,6 @@
 #include "private.h"
+#include "common.h"
+
 // forward declare
 void choleskyInit(cs * A, int P[], double **info);
 void choleskyFactor(cs * A, int P[], int Pinv[], cs ** L, double **D);
@@ -6,10 +8,10 @@ void choleskySolve(double *x, double b[], cs * L, double D[], int P[]);
 void factorize(Data * d,Work * w);
 
 void freePriv(Work * w){
-  cs_spfree(w->p->L);pdos_free(w->p->P);pdos_free(w->p->D);
-  pdos_free(w->p->Ac); pdos_free(w->p->Atb);
-  pdos_free(w->p->alpha1); pdos_free(w->p->alpha2);
-  pdos_free(w->p);
+  cs_spfree(w->p->L);PDOS_free(w->p->P);PDOS_free(w->p->D);
+  PDOS_free(w->p->Ac); PDOS_free(w->p->Atb);
+  PDOS_free(w->p->alpha1); PDOS_free(w->p->alpha2);
+  PDOS_free(w->p);
 }
 
 static inline void prepZHalfVariable(Data *d, Work *w) {
@@ -83,66 +85,27 @@ void projectLinSys(Data *d, Work * w){
 
 Work * initWork(Data* d){ 
   int n_plus_m = d->n + d->m;
-  Work * w = pdos_malloc(sizeof(Work));
-  w->p = pdos_malloc(sizeof(Priv));
-  w->l = 2*n_plus_m;
-  w->si = d->n;
-  w->ri = n_plus_m;
-  w->yi = n_plus_m + d->n;
-  w->z_half = pdos_malloc(sizeof(double)*w->l);
-  w->z = pdos_calloc(w->l,sizeof(double));
-  w->u = pdos_calloc(w->l,sizeof(double));  
-  w->ztmp = pdos_calloc(w->l,sizeof(double));
-  
-  if(d->NORMALIZE) {
-    int i;
-    int Anz = d->Ap[d->n];
+  Work *w = commonWorkInit(d);
+  w->p = PDOS_malloc(sizeof(Priv));
 
-    // scale A,b,c
-    double ds, ps, normA = 0.0;
-    // frobenius norm
-    for(i = 0; i < Anz; ++i) {
-      normA += d->Ax[i]*d->Ax[i]/(d->m*d->n);
-    }
-    normA = sqrt(normA);
-    ds = 1.0/sqrt(normA);
-    ps = 1.0/sqrt(normA);
-
-    for(i = 0; i < Anz; ++i) {
-      d->Ax[i] *= ds*ps;
-    }
-    for(i = 0; i < d->n; ++i) {
-      d->c[i] *= ps;
-    }
-    for(i = 0; i < d->m; ++i) {
-      d->b[i] *= ds;
-    }
-    w->dual_scale = ds;
-    w->primal_scale = ps;
-    
-  } else {
-    w->dual_scale = 1.0;
-    w->primal_scale = 1.0;
-  }
-
-  w->p->P = pdos_malloc(sizeof(int)*n_plus_m);
-  w->p->L = pdos_malloc(sizeof (cs));
+  w->p->P = PDOS_malloc(sizeof(int)*n_plus_m);
+  w->p->L = PDOS_malloc(sizeof (cs));
   w->p->L->m = n_plus_m;
   w->p->L->n = n_plus_m;
   w->p->L->nz = -1; 
   factorize(d,w);
   
-  w->p->Ac = pdos_calloc(d->m, sizeof(double));
-  w->p->Atb = pdos_calloc(d->n, sizeof(double));
+  w->p->Ac = PDOS_calloc(d->m, sizeof(double));
+  w->p->Atb = PDOS_calloc(d->n, sizeof(double));
   // Ac += A*c
   accumByA(d, d->c, w->p->Ac);
   // Atb += A'*b
   accumByATrans(d, d->b, w->p->Atb);
   
   // tmp may be extraneous (put into w->ztmp?)
-  double *tmp = pdos_calloc(w->l, sizeof(double));
-  w->p->alpha1 = pdos_malloc(sizeof(double)*d->m);
-  w->p->alpha2 = pdos_malloc(sizeof(double)*d->n);
+  double *tmp = PDOS_calloc(w->l, sizeof(double));
+  w->p->alpha1 = PDOS_malloc(sizeof(double)*d->m);
+  w->p->alpha2 = PDOS_malloc(sizeof(double)*d->n);
   
   // memcpy(tmp, d->c, (d->n)*sizeof(double));
   setAsScaledArray(tmp, d->c, 1, d->n);
@@ -155,7 +118,7 @@ Work * initWork(Data* d){
   memcpy(w->p->alpha1, tmp + (d->n), (d->m)*sizeof(double));
   memcpy(w->p->alpha2, tmp + (d->n) + (d->m), (d->n)*sizeof(double));
   
-  pdos_free(tmp);
+  PDOS_free(tmp);
 
   w->p->s = calcNormSq(d->c, d->n) + calcNormSq(d->b, d->m) - \
     innerProd(w->p->Ac, w->p->alpha1, d->m) + innerProd(w->p->Atb, w->p->alpha2, d->n);
@@ -209,7 +172,7 @@ cs * formKKT(Data * d, Work * w){
 void factorize(Data * d,Work * w){
   tic();
   cs * K = formKKT(d,w);
-  if(d->VERBOSE) pdos_printf("KKT matrix factorization info:\n");
+  if(d->VERBOSE) PDOS_printf("KKT matrix factorization info:\n");
   double *info;
   choleskyInit(K, w->p->P, &info);
   if(d->VERBOSE) {
@@ -222,12 +185,12 @@ void factorize(Data * d,Work * w){
   int * Pinv = cs_pinv(w->p->P, (w->l)/2);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
-  if(d->VERBOSE) pdos_printf("KKT matrix factorization took %4.8fs\n",tocq());
-  cs_spfree(C);cs_spfree(K);pdos_free(Pinv);pdos_free(info);
+  if(d->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq());
+  cs_spfree(C);cs_spfree(K);PDOS_free(Pinv);PDOS_free(info);
 }
 
 void choleskyInit(cs * A, int P[], double **info) {
-	*info  = (double *) pdos_malloc(AMD_INFO * sizeof(double));
+	*info  = (double *) PDOS_malloc(AMD_INFO * sizeof(double));
 #ifdef DLONG
 	amd_l_order(A->n, A->p, A->i, P, (double *) NULL, *info);
 #else
@@ -237,16 +200,16 @@ void choleskyInit(cs * A, int P[], double **info) {
 
 void choleskyFactor(cs * A, int P[], int Pinv[], cs **L , double **D) 
 {
-	(*L)->p = (int *) pdos_malloc((1 + A->n) * sizeof(int));
+	(*L)->p = (int *) PDOS_malloc((1 + A->n) * sizeof(int));
 	int Parent[A->n], Lnz[A->n], Flag[A->n], Pattern[A->n];
 	double Y[A->n];
 
 	ldl_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 
 	(*L)->nzmax = *((*L)->p + A->n);
-  (*L)->x = (double *) pdos_malloc((*L)->nzmax * sizeof(double));
-	(*L)->i =    (int *) pdos_malloc((*L)->nzmax * sizeof(int));
-  *D  = (double *) pdos_malloc(A->n * sizeof(double));
+  (*L)->x = (double *) PDOS_malloc((*L)->nzmax * sizeof(double));
+	(*L)->i =    (int *) PDOS_malloc((*L)->nzmax * sizeof(int));
+  *D  = (double *) PDOS_malloc(A->n * sizeof(double));
 
 	ldl_numeric(A->n, A->p, A->i, A->x, (*L)->p, Parent, Lnz, (*L)->i, (*L)->x, *D, Y, Pattern, Flag, P, Pinv);
 }

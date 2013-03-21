@@ -10,19 +10,19 @@
  */
 
 // x = b*a
-static inline void setAsScaledArray(double *x, const double * a,const double b,int len) {
+inline void setAsScaledArray(double *x, const double * a,const double b,int len) {
   int i;
   for( i=0;i<len;++i ) x[i] = b*a[i];
 }
 
 // a*= b
-static inline void scaleArray(double * a,const double b,int len){
+inline void scaleArray(double * a,const double b,int len){
   int i;
   for( i=0;i<len;++i) a[i]*=b;
 }
 
 // x'*y
-static inline double innerProd(const double * x, const double * y, int len){
+inline double innerProd(const double * x, const double * y, int len){
   int i;
   double ip = 0.0;
   for ( i=0;i<len;++i){
@@ -32,7 +32,7 @@ static inline double innerProd(const double * x, const double * y, int len){
 }
 
 // ||v||_2^2
-static inline double calcNormSq(const double * v,int len){
+inline double calcNormSq(const double * v,int len){
   int i;
   double nmsq = 0.0;
   for ( i=0;i<len;++i){
@@ -42,12 +42,12 @@ static inline double calcNormSq(const double * v,int len){
 }
 
 // ||v||_2
-static inline double calcNorm(const double * v,int len){
+inline double calcNorm(const double * v,int len){
   return sqrt(calcNormSq(v, len));
 }
 
 // ||v||_inf
-static inline double calcNormInf(const double *v, int len) {
+inline double calcNormInf(const double *v, int len) {
   double value, max = 0;
   int i;
   // compute norm_inf
@@ -59,7 +59,7 @@ static inline double calcNormInf(const double *v, int len) {
 }
 
 // saxpy a += sc*b
-static inline void addScaledArray(double * a, const double * b, int n, const double sc){
+inline void addScaledArray(double * a, const double * b, int n, const double sc){
   int i;
   for (i=0;i<n;++i){
     a[i] += sc*b[i];
@@ -67,7 +67,7 @@ static inline void addScaledArray(double * a, const double * b, int n, const dou
 }
 
 // y += alpha*A*x
-static inline void accumByScaledA(const Data *d, const double *x, const double sc, double *y){
+inline void accumByScaledA(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
   /* y += A*x */
@@ -88,7 +88,7 @@ static inline void accumByScaledA(const Data *d, const double *x, const double s
 }
 
 // y += alpha*A'*x
-static inline void accumByScaledATrans(const Data *d, const double *x, const double sc, double *y){
+inline void accumByScaledATrans(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
   /* y += A'*x */
@@ -108,24 +108,24 @@ static inline void accumByScaledATrans(const Data *d, const double *x, const dou
   }
 }
 
-static inline void accumByA(const Data *d, const double *x, double *y) {
+inline void accumByA(const Data *d, const double *x, double *y) {
   accumByScaledA(d,x,1.0,y);
 }
 
-static inline void accumByATrans(const Data *d, const double *x, double *y) {
+inline void accumByATrans(const Data *d, const double *x, double *y) {
   accumByScaledATrans(d,x,1.0,y);
 }
 
-static inline void decumByA(const Data *d, const double *x, double *y) {
+inline void decumByA(const Data *d, const double *x, double *y) {
   accumByScaledA(d,x,-1.0,y);
 }
 
-static inline void decumByATrans(const Data *d, const double *x, double *y) {
+inline void decumByATrans(const Data *d, const double *x, double *y) {
   accumByScaledATrans(d,x,-1.0,y);
 }
 
 // norm(A*x + s - b, 'inf')/normA
-static inline double calcPriResid(const Data *d, Work *w) {
+inline double calcPriResid(const Data *d, Work *w) {
   int i = 0;
   for(i = w->si; i < w->ri; ++i) {
     w->ztmp[i] = w->z[i] - d->b[i - w->si];
@@ -136,21 +136,21 @@ static inline double calcPriResid(const Data *d, Work *w) {
 }
 
 // norm(A*y + c, 'inf')/normB
-static inline double calcDualResid(const Data *d, Work *w) {
+inline double calcDualResid(const Data *d, Work *w) {
   memcpy(w->ztmp, d->c, (d->n)*sizeof(double));
   accumByATrans(d, w->z + (w->yi), w->ztmp);
   return calcNormInf(w->ztmp, d->n); // TODO: normalize by "normB"
 }
 
 // c'*x + b'*y
-static inline double calcSurrogateGap(const Data *d, Work *w) {
+inline double calcSurrogateGap(const Data *d, Work *w) {
   return innerProd(d->c, w->z, d->n) + innerProd(d->b, w->z + (w->yi), d->m);
 }
 
 // partition w->u = (-r_c, -y_c, -x_c, -s_c) or (0, -w, -u, -v)
 //                  (xi, si, ri, yi)
 // norm(A*u + v, 'inf')/normA
-static inline double calcCertPriResid(const Data *d, Work *w) {
+inline double calcCertPriResid(const Data *d, Work *w) {
   // w->u is negative of what we're interested in
   memcpy(w->ztmp + w->si, w->u + (w->yi), (d->m)*sizeof(double));
   accumByA(d, w->u + (w->ri), w->ztmp + (w->si));
@@ -159,20 +159,20 @@ static inline double calcCertPriResid(const Data *d, Work *w) {
 }
 
 // norm(A'*w, 'inf')/normB
-static inline double calcCertDualResid(const Data *d, Work *w) {
+inline double calcCertDualResid(const Data *d, Work *w) {
   memset(w->ztmp, 0, (d->n)*sizeof(double));
   accumByATrans(d, w->u + (w->si), w->ztmp);
   return calcNormInf(w->ztmp, d->n); // TODO: normalize by "normB"
 }
 
 // c'*u
-static inline double calcCertPriObj(const Data *d, Work *w) {
+inline double calcCertPriObj(const Data *d, Work *w) {
   // result is negated since w->u is negative of what we're interested in
   return -innerProd(d->c, w->u + (w->ri), d->n);
 }
 
 // -b'*w
-static inline double calcCertDualObj(const Data *d, Work *w) {
+inline double calcCertDualObj(const Data *d, Work *w) {
   // result is negated since w->u is negative of what we're interested in
   return innerProd(d->b, w->u + (w->si), d->m);
 }

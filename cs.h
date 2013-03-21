@@ -1,7 +1,6 @@
 #ifndef CS_H_GUARD
 #define CS_H_GUARD
 
-#include "pdos.h"
 //#include <string.h>
 //#include <stdlib.h>
 
@@ -18,9 +17,6 @@ typedef struct cs_sparse    /* matrix in compressed-column or triplet form */
 
 cs *cs_compress (const cs *T);
 cs *cs_done (cs *C, void *w, void *x, int ok);
-void *cs_malloc (int n, int size);
-void *cs_calloc (int n, int size);
-void *cs_free (void *p);
 cs *cs_spalloc (int m, int n, int nzmax, int values, int triplet);
 cs *cs_spfree (cs *A);
 double cs_cumsum (int *p, int *c, int n);

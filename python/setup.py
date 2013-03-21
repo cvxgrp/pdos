@@ -11,7 +11,8 @@ direct = Extension('pdos_direct', libraries = ['m'],
                     sources = ['pdosmodule.c',
                         '../direct/private.c',
                         '../direct/external/LDL/Source/ldl.c',
-                        '../cones.c', '../cs.c', '../pdos.c', '../util.c'
+                        '../linAlg.c', '../cones.c', '../cs.c', 
+                        '../common.c', '../pdos.c', '../util.c'
                     ] + glob('../direct/external/AMD/Source/*.c'))
 
 indirect = Extension('pdos_indirect', libraries = ['m'],
@@ -19,7 +20,8 @@ indirect = Extension('pdos_indirect', libraries = ['m'],
                     define_macros = [('INDIRECT', None), ('PYTHON', None)],
                     sources = ['pdosmodule.c',
                         '../indirect/private.c',
-                        '../cones.c', '../cs.c', '../pdos.c', '../util.c'
+                        '../linAlg.c', '../cones.c', '../cs.c', 
+                        '../common.c', '../pdos.c', '../util.c'
                     ])
 
 
