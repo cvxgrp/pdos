@@ -1,15 +1,26 @@
 #include "pdos.h"
 
-// redefine printfs as needed
+// redefine printfs and memory allocators as needed
 #ifdef MATLAB_MEX_FILE
 #include "mex.h"
 int (*pdos_printf) (const char *, ...) = mexPrintf ;
+void (*pdos_free) (void *) = mxFree ;
+void *(*pdos_malloc) (size_t) = mxMalloc ;
+void *(*pdos_calloc) (size_t, size_t) = mxCalloc ;
 #elif defined PYTHON
 #include <Python.h>
+#include <stdlib.h>
 int (*pdos_printf) (const char *, ...) = PySys_WriteStdout ;
+void (*pdos_free) (void *) = free ;
+void *(*pdos_malloc) (size_t) = malloc ;
+void *(*pdos_calloc) (size_t, size_t) = calloc ;
 #else
 #include <stdio.h>
+#include <stdlib.h>
 int (*pdos_printf) (const char *, ...) = printf ;
+void (*pdos_free) (void *) = free ;
+void *(*pdos_malloc) (size_t) = malloc ;
+void *(*pdos_calloc) (size_t, size_t) = calloc ;
 #endif
 
 // constants and data structures
@@ -105,7 +116,7 @@ Sol * pdos(Data * d, Cone * k)
     }
 		if (d->VERBOSE && i % 10 == 0) printSummary(d,w,i, &residuals);
 	}
-	Sol * sol = malloc(sizeof(Sol));
+	Sol * sol = pdos_malloc(sizeof(Sol));
 	getSolution(d,w,sol,STATE);
   
 	if(d->VERBOSE) {
@@ -131,37 +142,37 @@ Sol * pdos(Data * d, Cone * k)
 
 void free_data(Data * d, Cone * k){
   if(d) {
-    if(d->b) free(d->b);
-    if(d->c) free(d->c);
-    if(d->Ax) free(d->Ax);
-    if(d->Ai) free(d->Ai);
-    if(d->Ap) free(d->Ap);
-    free(d);
+    if(d->b) pdos_free(d->b);
+    if(d->c) pdos_free(d->c);
+    if(d->Ax) pdos_free(d->Ax);
+    if(d->Ai) pdos_free(d->Ai);
+    if(d->Ap) pdos_free(d->Ap);
+    pdos_free(d);
   }
   if(k) {
-    if(k->q) free(k->q);
-    free(k);
+    if(k->q) pdos_free(k->q);
+    pdos_free(k);
   }
   d = NULL; k = NULL;
 }
 
 void free_sol(Sol *sol){
   if(sol) {
-    if(sol->x) free(sol->x);
-    if(sol->y) free(sol->y);
-    if(sol->status) free(sol->status);
-    free(sol);
+    if(sol->x) pdos_free(sol->x);
+    if(sol->y) pdos_free(sol->y);
+    if(sol->status) pdos_free(sol->status);
+    pdos_free(sol);
   }
   sol = NULL;
 }
 
 static inline void freeWork(Work * w){
   freePriv(w);
-  free(w->z_half);
-  free(w->z);
-  free(w->u);
-  free(w->ztmp);
-  free(w);
+  pdos_free(w->z_half);
+  pdos_free(w->z);
+  pdos_free(w->u);
+  pdos_free(w->ztmp);
+  pdos_free(w);
 }
 
 static inline void printSol(Data * d, Sol * sol){
@@ -221,7 +232,7 @@ static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state){
 }
 
 static inline void sety(Data * d,Work * w, Sol * sol){
-	sol->y = malloc(sizeof(double)*d->m);
+	sol->y = pdos_malloc(sizeof(double)*d->m);
 	//memcpy(sol->y, w->z + w->yi, d->m*sizeof(double));
   int i;
   for(i = 0; i < d->m; ++i) {
@@ -230,7 +241,7 @@ static inline void sety(Data * d,Work * w, Sol * sol){
 }
 
 static inline void setx(Data * d,Work * w, Sol * sol){
-	sol->x = malloc(sizeof(double)*d->n);
+	sol->x = pdos_malloc(sizeof(double)*d->n);
 	//memcpy(sol->x, w->z, d->n*sizeof(double));
   int i;
   for(i = 0; i < d->n; ++i) {

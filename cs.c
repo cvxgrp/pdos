@@ -38,19 +38,19 @@ cs *cs_done (cs *C, void *w, void *x, int ok)
 /* wrapper for malloc */
 void *cs_malloc (int n, int size)
 {
-    return (malloc (n * size)) ;
+    return (pdos_malloc (n * size)) ;
 }
 
 /* wrapper for calloc */
 void *cs_calloc (int n, int size)
 {
-    return (calloc (n, size)) ;
+    return (pdos_calloc (n, size)) ;
 }
 
 /* wrapper for free */
 void *cs_free (void *p)
 {
-    if (p) free (p) ;       /* free p if it is not already NULL */
+    if (p) pdos_free (p) ;       /* free p if it is not already NULL */
     return (NULL) ;         /* return NULL to simplify the use of cs_free */
 }
 

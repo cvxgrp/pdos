@@ -1,8 +1,9 @@
 #ifndef CS_H_GUARD
 #define CS_H_GUARD
 
-#include <string.h>
-#include <stdlib.h>
+#include "pdos.h"
+//#include <string.h>
+//#include <stdlib.h>
 
 typedef struct cs_sparse    /* matrix in compressed-column or triplet form */
 {

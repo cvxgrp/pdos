@@ -81,8 +81,9 @@ typedef struct WORK {
 // double *y_bar, *x_bar, *s_bar;
 // // x_bar = x_bar + r_half
 
-#include <stdio.h>
-#include <stdlib.h>
+// #ifndef MATLAB_MEX_FILE
+// #include <stdio.h>
+// #include <stdlib.h>
 #include <string.h>    
 #include <sys/time.h>
 #include <math.h>
@@ -110,7 +111,10 @@ Work * initWork(Data * d);
 void projectLinSys(Data * d, Work * w);
 void freePriv(Work * w);
 
-// private printf
+// private printf and memory managers
 extern int (*pdos_printf) (const char *, ...) ;
+extern void (*pdos_free) (void *);
+extern void *(*pdos_malloc) (size_t);
+extern void *(*pdos_calloc) (size_t, size_t);
 
 #endif

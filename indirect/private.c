@@ -3,16 +3,16 @@
 Work * initWork(Data* d){
   
   int n_plus_m = d->n + d->m;
-  Work * w = malloc(sizeof(Work));
-  w->p = malloc(sizeof(Priv));
+  Work * w = pdos_malloc(sizeof(Work));
+  w->p = pdos_malloc(sizeof(Priv));
   w->l = 2*n_plus_m;
   w->si = d->n;
   w->ri = n_plus_m;
   w->yi = n_plus_m + d->n;
-  w->z_half = malloc(sizeof(double)*w->l);
-  w->z = calloc(w->l,sizeof(double));
-  w->u = calloc(w->l,sizeof(double));  
-  w->ztmp = calloc(w->l,sizeof(double));
+  w->z_half = pdos_malloc(sizeof(double)*w->l);
+  w->z = pdos_calloc(w->l,sizeof(double));
+  w->u = pdos_calloc(w->l,sizeof(double));  
+  w->ztmp = pdos_calloc(w->l,sizeof(double));
   
   if(d->NORMALIZE) {
     int i;
@@ -44,9 +44,9 @@ Work * initWork(Data* d){
     w->primal_scale = 1.0;
   }
   
-  w->p->lambda = calloc(n_plus_m + 1, sizeof(double));
-  w->p->p = calloc(n_plus_m + 1, sizeof(double));
-  w->p->q = calloc(n_plus_m + 1, sizeof(double));
+  w->p->lambda = pdos_calloc(n_plus_m + 1, sizeof(double));
+  w->p->p = pdos_calloc(n_plus_m + 1, sizeof(double));
+  w->p->q = pdos_calloc(n_plus_m + 1, sizeof(double));
   
   return w;
 }
@@ -111,11 +111,11 @@ Work * initWork(Data* d){
 //   }
 //   Q->nz = kk;
 //   w->p->Q = cs_compress(Q);
-//   cs_spfree(Q);
+//   cs_sppdos_free(Q);
 // }
 
 void freePriv(Work * w){
-  free(w->p->lambda); free(w->p->p); free(w->p->q); free(w->p);
+  pdos_free(w->p->lambda); pdos_free(w->p->p); pdos_free(w->p->q); pdos_free(w->p);
 }
 
 static inline void prepZHalfVariable(Data *d, Work *w) {

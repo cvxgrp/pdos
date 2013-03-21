@@ -26,8 +26,6 @@ for i = 1 : length (amd_files)
     cmd = sprintf ('%s ../direct/external/AMD/Source/%s.c', cmd, amd_files {i}) ;
 end
 cmd = sprintf ('%s ../direct/external/LDL/Source/ldl.c  pdos_mex.c ../pdos.c ../cones.c ../cs.c ../linAlg.c ../util.c ../direct/private.c -lm -o pdos_direct', cmd) ;
-cmd
-
 
 eval (cmd) ;
 
