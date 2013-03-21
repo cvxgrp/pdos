@@ -12,13 +12,16 @@
 %compile direct
 common_pdos = 'pdos_mex.c ../pdos.c ../cones.c ../cs.c ../linAlg.c ../common.c ../util.c';
 
+
 if (~isempty (strfind (computer, '64')))
-    d = '-largeArrayDims -m64' ;
+    d = '-fPIC' ;
+    arr = '-largeArrayDims';
 else
-    d = '-m32';
+    d = '-fPIC -m32';
+    arr = '';
 end
 
-cmd = sprintf ('mex -v -O CFLAGS="-std=c99 -DMATLAB_MEX_FILE %s" -I../', d) ;
+cmd = sprintf ('mex -v -O %s CFLAGS="-std=c99 -DMATLAB_MEX_FILE %s" -I../', arr, d) ;
 amd_files = {'amd_order', 'amd_dump', 'amd_postorder', 'amd_post_tree', ...
     'amd_aat', 'amd_2', 'amd_1', 'amd_defaults', 'amd_control', ...
     'amd_info', 'amd_valid', 'amd_global', 'amd_preprocess' } ;
@@ -29,5 +32,5 @@ cmd = sprintf ('%s ../direct/ldl.c %s ../direct/private.c -lm -o pdos_direct', c
 eval(cmd) ;
 
 % compile indirect
-cmd = sprintf('mex -v -O -largeArrayDims CFLAGS="-std=c99 -DMATLAB_MEX_FILE %s" %s ../indirect/private.c -I../ -o pdos_indirect -lm', d, common_pdos);
+cmd = sprintf('mex -v -O %s CFLAGS="-std=c99 -DMATLAB_MEX_FILE %s" %s ../indirect/private.c -I../ -o pdos_indirect -lm', arr, d, common_pdos);
 eval(cmd);

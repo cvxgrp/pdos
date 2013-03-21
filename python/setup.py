@@ -8,7 +8,8 @@ direct = Extension('pdos_direct', libraries = ['m'],
                     sources = ['pdosmodule.c',
                         '../linAlg.c', '../cones.c', '../cs.c', 
                         '../common.c', '../pdos.c', '../util.c'
-                    ] + glob('../direct/*.c'))
+                    ] + glob('../direct/*.c'),
+                    extra_compile_args=['-std=c99'])
 
 indirect = Extension('pdos_indirect', libraries = ['m'],
                     include_dirs = ['../', get_include()],
@@ -17,7 +18,8 @@ indirect = Extension('pdos_indirect', libraries = ['m'],
                         '../indirect/private.c',
                         '../linAlg.c', '../cones.c', '../cs.c', 
                         '../common.c', '../pdos.c', '../util.c'
-                    ])
+                    ],
+                    extra_compile_args=['-std=c99'])
 
 
 setup(  name = 'pdos',

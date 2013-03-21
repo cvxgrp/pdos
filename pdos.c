@@ -201,10 +201,10 @@ static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state){
   setx(d,w,sol);
   sety(d,w,sol);
   switch(solver_state) {
-    case SOLVED: sol->status = strdup("Solved"); break;
-    case INFEASIBLE: sol->status = strdup("Infeasible"); break;
-    case UNBOUNDED: sol->status = strdup("Unbounded"); break;
-    default: sol->status = strdup("Indeterminate");
+    case SOLVED: sol->status = strdup("Solved", 6); break;
+    case INFEASIBLE: sol->status = strdup("Infeasible", 11); break;
+    case UNBOUNDED: sol->status = strdup("Unbounded", 10); break;
+    default: sol->status = strdup("Indeterminate", 14);
   }
 }
 
