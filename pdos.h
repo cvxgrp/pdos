@@ -20,7 +20,7 @@ typedef struct PROBLEM_DATA {
 
 typedef struct SOL_VARS {
   double * x, * y;
-  char * status;
+  char status[16];
 } Sol;
 
 typedef struct PRIVATE_DATA Priv;

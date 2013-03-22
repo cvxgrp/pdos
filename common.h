@@ -46,11 +46,12 @@ inline Work *commonWorkInit(Data *d) {
     double ds, ps, normA = 0.0;
     // frobenius norm
     for(i = 0; i < Anz; ++i) {
-      normA += d->Ax[i]*d->Ax[i]/(d->m*d->n);
+      normA = (normA > fabs(d->Ax[i])) ? normA : fabs(d->Ax[i]);
+      //normA += (d->Ax[i]*d->Ax[i]);//((double)d->m*d->n);
     }
     normA = sqrt(normA);
-    ds = pow((double)(1.0)/normA, (double)(d->n)/((double)(d->m + d->n)));
-    ps = pow((double)(1.0)/normA, (double)(d->m)/((double)(d->m + d->n)));
+    ds = pow((double)1.0/normA, (double)(d->n)/((double)(d->m + d->n)));
+    ps = pow((double)1.0/normA, (double)(d->m)/((double)(d->m + d->n)));
 
     for(i = 0; i < Anz; ++i) {
       d->Ax[i] *= ds*ps;

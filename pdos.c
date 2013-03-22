@@ -137,7 +137,7 @@ void free_sol(Sol *sol){
   if(sol) {
     if(sol->x) PDOS_free(sol->x);
     if(sol->y) PDOS_free(sol->y);
-    if(sol->status) PDOS_free(sol->status);
+    //if(sol->status) PDOS_free(sol->status);
     PDOS_free(sol);
   }
   sol = NULL;
@@ -201,10 +201,10 @@ static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state){
   setx(d,w,sol);
   sety(d,w,sol);
   switch(solver_state) {
-    case SOLVED: sol->status = strdup("Solved", 6); break;
-    case INFEASIBLE: sol->status = strdup("Infeasible", 11); break;
-    case UNBOUNDED: sol->status = strdup("Unbounded", 10); break;
-    default: sol->status = strdup("Indeterminate", 14);
+    case SOLVED: memcpy(sol->status,"Solved", 7); break;
+    case INFEASIBLE: memcpy(sol->status,"Infeasible", 12); break;
+    case UNBOUNDED: memcpy(sol->status,"Unbounded", 11); break;
+    default: memcpy(sol->status, "Indeterminate", 15);
   }
 }
 
