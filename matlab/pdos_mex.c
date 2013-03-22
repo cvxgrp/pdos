@@ -9,18 +9,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs != 3){
     mexErrMsgTxt("Three arguments are required in this order: data struct, cone struct, params struct");
   }
-  
-  Data * d = malloc(sizeof(Data)); 
-  Cone * k = malloc(sizeof(Cone)); 
+  Data * d = mxMalloc(sizeof(Data)); 
+  Cone * k = mxMalloc(sizeof(Cone)); 
   const mxArray *data = prhs[0];
    
   const mxArray *A_mex = (mxArray *) mxGetField(data,0,"A");
+  if(A_mex == NULL) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Data struct must contain a `A` entry.");
+  }
   if (!mxIsSparse(A_mex)){
-    free(d); free(k);
+    mxFree(d); mxFree(k);
     mexErrMsgTxt("Input matrix A must be in sparse format (pass in sparse(A))");
   }
   const mxArray *b_mex = (mxArray *) mxGetField(data,0,"b");
+  if(b_mex == NULL) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Data struct must contain a `b` entry.");
+  }
   const mxArray *c_mex = (mxArray *) mxGetField(data,0,"c"); 
+  if(c_mex == NULL) {
+    free(d); free(k);
+    mexErrMsgTxt("Data struct must contain a `c` entry.");
+  }
+
   const mxArray *cone = prhs[1];
   const mxArray *params = prhs[2];
   d->n = *(mxGetDimensions(c_mex));
@@ -46,15 +58,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double * q_mex = mxGetPr(mxGetField(cone,0,"q"));
   k->qsize = *(mxGetDimensions(mxGetField(cone,0,"q")));
   int i;
-  k->q = malloc(sizeof(int)*k->qsize);
+  k->q = mxMalloc(sizeof(int)*k->qsize);
   for ( i=0; i < k->qsize; i++ ){
     k->q[i] = (int)q_mex[i]; 
   }
   
   int Anz = mxGetNzmax(A_mex);
   d->Ax = (double *)mxGetPr(A_mex);
-  d->Ap = (int *)malloc(sizeof(int)*Anz);
-  d->Ai = (int *)malloc(sizeof(int)*Anz);
+  d->Ap = (int *)mxMalloc(sizeof(int)*Anz);
+  d->Ai = (int *)mxMalloc(sizeof(int)*Anz);
   long * A_i = (long*)mxGetIr(A_mex);
   /* XXX fix this crap: */
   for (i = 0; i < Anz; i++){
@@ -81,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   plhs[2] = mxCreateString(sol->status);
   
-  free(d->Ai);free(d->Ap);free(d);free(k->q);free(k);
+  //free(d->Ai);free(d->Ap);free(d);free(k->q);free(k);
   return; 
 }
 
