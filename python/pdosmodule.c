@@ -44,7 +44,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    * `G` is a cvxopt (sparse) matrix
    * `h` is a cvxopt (dense) column vector
    * `dims` is a dictionary with
-   *    `dims['f']` an integer giving the number of free variables
+   *    `dims['f']` an integer giving the number of equality constraints
    *    `dims['l']` an integer specifying the dimension of positive orthant cone
    *    `dims['q']` an *array* specifying dimensions of second-order cones
    * `opts` is an optional dictionary with
@@ -85,7 +85,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   spmatrix *G;
   PyObject *dims, *opts = NULL;
   
-  idxint m, n, i;
+  idxint m, n, i, num_conic_variables = 0;
   
   if( !PyArg_ParseTuple(args, "OOOO!|O!",
         &c,
@@ -143,7 +143,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   PyObject *freeObj = PyDict_GetItemString(dims, "f");
   if(freeObj) {
     if(PyInt_Check(freeObj) && ((k->f = (idxint) PyInt_AsLong(freeObj)) >= 0)) {
-      // do nothing
+      num_conic_variables += k->f;
     } else {
       PyErr_SetString(PyExc_TypeError, "dims['f'] ought to be a nonnegative integer");
       freeDataAndConeOnly(d,k); return NULL;
@@ -154,7 +154,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   PyObject *linearObj = PyDict_GetItemString(dims, "l");
   if(linearObj) {
     if(PyInt_Check(linearObj) && ((k->l = (idxint) PyInt_AsLong(linearObj)) >= 0)) {
-      // do nothing
+      num_conic_variables += k->l;
     } else {
       PyErr_SetString(PyExc_TypeError, "dims['l'] ought to be a nonnegative integer");
       freeDataAndConeOnly(d,k); return NULL;
@@ -170,7 +170,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       for (i = 0; i < k->qsize; ++i) {
           PyObject *qi = PyList_GetItem(socObj, i);
           if(PyInt_Check(qi) && ((k->q[i] = (idxint) PyInt_AsLong(qi)) > 0)) {
-            // do nothing
+            num_conic_variables += k->q[i];
           } else {
             PyErr_SetString(PyExc_TypeError, "dims['q'] ought to be a list of positive integers");
             freeDataAndConeOnly(d,k); return NULL;
@@ -181,6 +181,11 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       PyErr_SetString(PyExc_TypeError, "dims['q'] ought to be a list");
       freeDataAndConeOnly(d,k); return NULL;
     }
+  }
+  
+  if( num_conic_variables != m ){
+      PyErr_SetString(PyExc_ValueError, "Number of rows of G does not match dims.f+dims.l+sum(dims.q)");
+      freeDataAndConeOnly(d,k); return NULL;
   }
   
   if(opts) {
