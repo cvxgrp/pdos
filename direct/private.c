@@ -16,8 +16,7 @@ static inline void prepArgument(const Data *d, Work *w) {
   // memcpy(w->z_half,w->z,w->l*sizeof(double));
   // addScaledArray(w->z_half,w->lam,w->l,-1);
   
-  // w->x = (-(x-c), b - (s+y))
-  
+  // w->x = (-(x-c), b - (s+y))  
   idxint i;  
   for (i = 0; i < d->n; i++) { 
     // set x = -(x - c)
@@ -25,20 +24,19 @@ static inline void prepArgument(const Data *d, Work *w) {
   }
   for (i = 0; i < d->m; i++) { 
     // set s_half = (b - (s + y))
-    w->s[i] = d->b[i] - (w->s[i] + w->y[i]);
+    w->stilde[i] = d->b[i] - (w->s[i] + w->y[i]);
   }
 }
 
 void projectLinSys(const Data *d, Work * w){
   // this preps the argument (-(x-c), b - (s+y)) for LDL solve 
-  // (puts it in w->x)
-  prepArgument(d,w);
-  choleskySolve(w->x, w->x, w->p->L, w->p->D, w->p->P);
-  
+  // (puts it in w->x)  
+  prepArgument(d,w);  
+  choleskySolve(w->x, w->x, w->p->L, w->p->D, w->p->P);  
   // stilde = b - A*x
   memcpy(w->stilde, d->b, d->m*sizeof(double));
   // stilde -= A*x
-  decumByA(d, w->x, w->stilde);
+  decumByA(d, w->x, w->stilde);  
 }
 
 Work * initWork(const Data* d){ 

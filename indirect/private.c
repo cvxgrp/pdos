@@ -30,7 +30,7 @@ static inline void prepArgument(const Data *d, Work *w) {
   // }
   for (i = 0; i < d->m; i++) { 
     // set s_half = (s + y - b)
-    w->s[i] += w->y[i] - d->b[i];
+    w->stilde[i] = w->s[i] + w->y[i] - d->b[i];
   }
 }
 
@@ -43,7 +43,7 @@ static inline void cgCustom(const Data *d, Work *w, idxint max_its,double tol){
   double *q = w->p->q;
   double *Ax = w->p->Ax;
   double *x = w->x; // contains x
-  const double *s = w->s; // contains v - b
+  const double *s = w->stilde; // contains v - b
   
 	double alpha, beta, qsnew_sq=0;
   double tol_sq = tol*tol;  // XXX: could be a very small number...

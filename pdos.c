@@ -52,7 +52,7 @@ Sol * pdos(const Data * d, const Cone * k)
     printHeader();
     tic();
   }
-  for (i=0; i < d->MAX_ITERS; ++i){             
+  for (i=0; i < d->MAX_ITERS; ++i){    
 		projectLinSys(d,w);
 		relax(d,w);
     projectCones(d,w,k);
@@ -121,7 +121,8 @@ void free_sol(Sol *sol){
   if(sol) {
     if(sol->x) PDOS_free(sol->x);
     if(sol->y) PDOS_free(sol->y);
-    //if(sol->status) PDOS_free(sol->status);
+    // done automatically
+    // if(sol->status) PDOS_free(sol->status);
     PDOS_free(sol);
   }
   sol = NULL;
@@ -129,11 +130,10 @@ void free_sol(Sol *sol){
 
 static inline void freeWork(Work * w){
   freePriv(w);
-  PDOS_free(w->x); // also frees w->s
-  w->s = NULL;
-  //PDOS_free(w->s);
+  PDOS_free(w->x); // also frees w->stilde
+  w->stilde = NULL;
+  PDOS_free(w->s);
   PDOS_free(w->y);
-  PDOS_free(w->stilde);
   PDOS_free(w);
 }
 
@@ -162,7 +162,7 @@ static inline void printSol(const Data * d, const Sol * sol){
 
 static inline void updateDualVars(const Data *d, Work * w){
   idxint i;
-  for(i = 0; i < d->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i]); }
+  for(i = 0; i < d->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i]); }  
 }
 
 static inline void prepZVariable(const Data *d, Work *w){
@@ -176,7 +176,7 @@ static inline void projectCones(const Data *d,Work * w,const Cone * k){
   // addScaledArray(w->s, w->y, d->m, -1);
   // s = stilde - y
   prepZVariable(d,w);
-  
+
 	/* s onto K */
 	projCone(w->s, k);
 }
@@ -209,10 +209,10 @@ static inline void setx(const Data * d,const Work * w, Sol * sol){
 }
 
 static inline void relax(const Data * d,Work * w){   
-	idxint j;
+	idxint j;  
 	for(j=0; j < d->m; ++j){
-		w->stilde[j] = d->ALPH*w->stilde[j] + (1.0 - d->ALPH)*w->s[j];
-	}
+		w->stilde[j] = (d->ALPH)*w->stilde[j] + (1.0 - d->ALPH)*w->s[j];
+	}  
 }
 
 static inline void printSummary(const Data * d,const Work * w,idxint i, struct resid *r){

@@ -28,15 +28,15 @@
 #include <math.h>
 
 #ifndef MAX
-#define MAX(a,b) (a) > (b) ? (a) : (b)
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
 static inline Work *commonWorkInit(const Data *d) {
   Work * w = PDOS_malloc(sizeof(Work));
-  // ensure that x, s are contiguous in memory
-  w->x = PDOS_calloc(d->n + d->m,sizeof(double));
-  w->s = w->x + d->n;
-  w->stilde = PDOS_calloc(MAX(d->m,d->n),sizeof(double));
+  // ensure that x, stilde are contiguous in memory
+  w->x = PDOS_calloc(d->n + MAX(d->m,d->n),sizeof(double));
+  w->stilde = w->x + d->n;
+  w->s = PDOS_calloc(d->m,sizeof(double));
   w->y = PDOS_calloc(d->m,sizeof(double));  
   //w->xtmp = PDOS_calloc(d->n,sizeof(double));
 

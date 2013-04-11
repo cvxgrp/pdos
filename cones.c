@@ -5,7 +5,7 @@
 static inline void projSelfDualCone(double *x, const Cone * k)
 {
   idxint i, j;
-  idxint count;
+  idxint count;  
   
   /* project onto positive orthant */
   for(i = k->f; i < k->f+k->l; ++i)
