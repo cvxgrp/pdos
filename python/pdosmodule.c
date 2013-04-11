@@ -1,6 +1,6 @@
 #include <Python.h>
 #include "pdos.h"
-#include "numpy/arrayobject.h"
+#include "cvxopt.h"
 
 // TODO: when normalizing, make a copy
 
@@ -12,26 +12,12 @@
  * is planned, but not likely to be implemented soon.
  */
 
-static PyObject *PDOSError;
- 
-static inline int getIntType() {
-  switch(NPY_SIZEOF_INT) {
-    case 1: return NPY_INT8;
-    case 2: return NPY_INT16;
-    case 4: return NPY_INT32;
-    case 8: return NPY_INT64;
-    default: return NPY_INT32;  // defaults to 4 byte int
-  }
-}
-
-static inline int getDoubleType() {
-  return NPY_DOUBLE;
-}
 
 static inline void freeDataAndConeOnly(Data *d, Cone *k) {
   // this function is useful since the Data and Cone "structs" do not own the
   // memory for the arrays; numpy does.
   if(d) free(d);
+  if(k->q) free(k->q);
   if(k) free(k);
   d = NULL; k = NULL;
 }
@@ -50,58 +36,44 @@ static void cleanup()
 static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
 {
   /* Expects a function call 
-   *     sol = solve(Ax, Ai, Ap, b, c, f=,l=,q=, MAX_ITERS=, EPS_ABS=, EPS_INFEAS=, ALPHA=, VERBOSE=, NORMALIZE=)
+   *     sol = solve(c,G,h,dims,opts)
    * The uppercase keywords are optional. If INDIRECT is #define'd, then
-   * CG_MAX_ITS and CG_TOL are also optional keyword arguments.
+   * CG_MAX_ITS and CG_TOL can also be provided as options.
    *
-   * "A" is a sparse matrix in column compressed storage. "Ax" are the values,
-   * "Ai" are the rows, and "Ap" are the column pointers.
-   * `Ax` is a Numpy array of doubles
-   * `Ai` is a Numpy array of ints
-   * `Ap` is a Numpy array of ints
+   * `c` is a cvxopt (dense) column vector
+   * `G` is a cvxopt (sparse) matrix
+   * `h` is a cvxopt (dense) column vector
+   * `dims` is a dictionary with
+   *    `dims['f']` an integer giving the number of free variables
+   *    `dims['l']` an integer specifying the dimension of positive orthant cone
+   *    `dims['q']` an *array* specifying dimensions of second-order cones
+   * `opts` is an optional dictionary with
+   *    `opts['MAX_ITERS']` is an integer. Sets the maximum number of ADMM iterations.
+   *        Defaults to 2000.
+   *    `opts['EPS_ABS']` is a double. Sets the quitting tolerance for ADMM. 
+   *        Defaults to 1e-3.
+   *    `opts['ALPHA']` is a double in (0,2) (non-inclusive). Sets the over-relaxation
+   *        parameter. Defaults to 1.0.
+   *    `opts['VERBOSE']` is an integer (or Boolean) either 0 or 1. Sets the verbosity of
+   *        the solver. Defaults to 1 (or True).
+   *    `opts['NORMALIZE']` is an integer (or Boolean) either 0 or 1. Tells the solver to
+   *        normalize the data. Defaults to 0 (or False).
    *
-   * `b` is a (dense) Numpy array of doubles
-   * `c` is a (dense) Numpy array of doubles
-   *
-   * `f` is an integer giving the number of free variables
-   * `l` is an integer giving the number of nonnegative constraints
-   * `q` is a Numpy array of integers giving the number of cone constraints
-   *
-   * 
-   * MAX_ITERS is an integer. Sets the maximum number of ADMM iterations.
-   *  Defaults to 2000.
-   * EPS_ABS is a double. Sets the quitting tolerance for ADMM. 
-   *  Defaults to 1e-4.
-   * EPS_INFEAS is a double. Sets the quitting tolerance for infeasibility.
-   *  Defaults to 5e-5.
-   * ALPHA is a double in (0,2) (non-inclusive). Sets the over-relaxation
-   *  parameter. Defaults to 1.0.
-   * VERBOSE is an integer (or Boolean) either 0 or 1. Sets the verbosity of
-   *  the solver. Defaults to 1 (or True).
-   * NORMALIZE is an integer (or Boolean) either 0 or 1. Tells the solver to
-   *  normalize the data. Defaults to 0 (or False).
-   *
-   * CG_MAX_ITS is an integer. Sets the maximum number of CG iterations.
-   *  Defaults to 20.
-   * CG_TOL is a double. Sets the tolerance for CG.
-   *  Defaults to 1e-3.
+   *    `opts['CG_MAX_ITS']` is an integer. Sets the maximum number of CG iterations.
+   *        Defaults to 20.
+   *    `opts['CG_TOL']` is a double. Sets the tolerance for CG.
+   *        Defaults to 1e-3.
    *  
    * The code returns a Python dictionary with three keys, 'x', 'y', and 'status'.
-   * These report the primal and dual solution (as numpy arrays) and the solver
+   * These report the primal and dual solution (as cvxopt dense matrices) and the solver
    * status (as a string).
    */
      
-     
-#ifdef INDIRECT
-  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "CG_MAX_ITS", "CG_TOL", "VERBOSE", "NORMALIZE", NULL};
-#else
-  static char *kwlist[] = {"Ax","Ai","Ap","b","c","f","l","q","MAX_ITERS", "EPS_ABS", "EPS_INFEAS", "ALPHA", "VERBOSE", "NORMALIZE", NULL};
-#endif
   Data *d = calloc(1,sizeof(Data)); // sets everything to 0
   Cone *k = calloc(1,sizeof(Cone)); // sets everything to 0
+  // set default values
   d->MAX_ITERS = 2000;
-  d->EPS_ABS = 1e-4;
-  d->EPS_INFEAS = 5e-5;
+  d->EPS_ABS = 1e-3;
   d->ALPH = 1.0;
   d->VERBOSE = 1;
 #ifdef INDIRECT
@@ -109,154 +81,224 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   d->CG_TOL = 1e-3;
 #endif
   
-  PyArrayObject *Ax, *Ai, *Ap, *b, *c, *q = NULL;
-  PyArrayObject *tmp_arr;
-  PyArrayObject *Ax_arr, *Ai_arr, *Ap_arr, *b_arr, *c_arr, *q_arr = NULL;
+  matrix *c, *h;
+  spmatrix *G;
+  PyObject *dims, *opts = NULL;
   
-  int intType = getIntType();
-  int doubleType = getDoubleType();
+  idxint m, n, i;
   
-#ifdef INDIRECT
-  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddidii", kwlist,
-      &PyArray_Type, &Ax,
-      &PyArray_Type, &Ai,
-      &PyArray_Type, &Ap,
-      &PyArray_Type, &b,
-      &PyArray_Type, &c,
-      &(k->f),
-      &(k->l),
-      &PyArray_Type, &q,
-      &(d->MAX_ITERS), 
-      &(d->EPS_ABS),
-      &(d->EPS_INFEAS),
-      &(d->ALPH),
-      &(d->CG_MAX_ITS),
-      &(d->CG_TOL),
-      &(d->VERBOSE),
-      &(d->NORMALIZE))
-    ) { freeDataAndConeOnly(d,k); return NULL; } 
-#else
-  if( !PyArg_ParseTupleAndKeywords(args, keywords, "O!O!O!O!O!|iiO!idddii", kwlist,
-      &PyArray_Type, &Ax,
-      &PyArray_Type, &Ai,
-      &PyArray_Type, &Ap,
-      &PyArray_Type, &b,
-      &PyArray_Type, &c,
-      &(k->f),
-      &(k->l),
-      &PyArray_Type, &q,
-      &(d->MAX_ITERS), 
-      &(d->EPS_ABS),
-      &(d->EPS_INFEAS),
-      &(d->ALPH),
-      &(d->VERBOSE),
-      &(d->NORMALIZE))
+  if( !PyArg_ParseTuple(args, "OOOO!|O!",
+        &c,
+        &G,
+        &h,
+        &PyDict_Type, &dims,
+        &PyDict_Type, &opts)
     ) { freeDataAndConeOnly(d,k); return NULL; }
-#endif
-  
-  // check that Ax is a double array (and ensure it's of type "double")
-  if( !PyArray_ISFLOAT(Ax) ) {
-    PyErr_SetString(PDOSError, "Ax must be a numpy array of floats");
-    freeDataAndConeOnly(d,k);
-    return NULL;
+        
+  /* set G */
+  if ((SpMatrix_Check(G) && SP_ID(G) != DOUBLE)){
+      PyErr_SetString(PyExc_TypeError, "G must be a sparse 'd' matrix");
+      freeDataAndConeOnly(d,k); return NULL;
   }
-  tmp_arr = PyArray_GETCONTIGUOUS(Ax);
-  Ax_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
-  Py_DECREF(tmp_arr);
-  d->Ax = (double *) PyArray_DATA(Ax_arr);
-  
-  // check that Ai is a int array (and ensure it's of type "int")
-  if( !PyArray_ISINTEGER(Ai) ) {
-    PyErr_SetString(PDOSError, "Ai must be a numpy array of ints");
-    Py_DECREF(Ax_arr);
-    freeDataAndConeOnly(d,k);
-    return NULL;
+  if ((m = SP_NROWS(G)) <= 0) {
+      PyErr_SetString(PyExc_ValueError, "m must be a positive integer");
+      freeDataAndConeOnly(d,k); return NULL;
   }
-  tmp_arr = PyArray_GETCONTIGUOUS(Ai);
-  Ai_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, intType);
-  Py_DECREF(tmp_arr);
-  d->Ai = (int *) PyArray_DATA(Ai_arr);
-  
-  // check that Ap is a int array (and ensure it's of type "int")
-  if( !PyArray_ISINTEGER(Ap) ) {
-    PyErr_SetString(PDOSError, "Ap must be a numpy array of ints");
-    Py_DECREF(Ax_arr); Py_DECREF(Ai_arr);
-    freeDataAndConeOnly(d,k);
-    return NULL;
+  if ((n = SP_NCOLS(G)) <= 0) {
+      PyErr_SetString(PyExc_ValueError, "n must be a positive integer");
+      freeDataAndConeOnly(d,k); return NULL;
   }
-  tmp_arr = PyArray_GETCONTIGUOUS(Ap);
-  Ap_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, intType);
-  Py_DECREF(tmp_arr);
-  d->Ap = (int *) PyArray_DATA(Ap_arr);
-  
-  // check that b is a double array (and ensure it's of type "double")
-  if( !PyArray_ISFLOAT(b) ) {
-    PyErr_SetString(PDOSError, "b must be a numpy array of floats");
-    Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr);
-    freeDataAndConeOnly(d,k);
-    return NULL;
+  d->Ax = SP_VALD(G);
+  d->Ai = SP_ROW(G);
+  d->Ap = SP_COL(G);
+
+  /* set c */
+  if (!Matrix_Check(c) || MAT_NCOLS(c) != 1 || MAT_ID(c) != DOUBLE) {
+      PyErr_SetString(PyExc_TypeError, "c must be a dense 'd' matrix with one column");
+      freeDataAndConeOnly(d,k); return NULL;
   }
-  tmp_arr = PyArray_GETCONTIGUOUS(b);
-  b_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
-  Py_DECREF(tmp_arr);
-  d->b = (double *) PyArray_DATA(b_arr);
-  d->m = (int) PyArray_SIZE(b_arr); // loses precision
-  
-  // check that c is a double array (and ensure it's of type "double")
-  if( !PyArray_ISFLOAT(c) ) {
-    PyErr_SetString(PDOSError, "c must be a numpy array of floats");
-    Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr); Py_DECREF(b_arr);
-    freeDataAndConeOnly(d,k);
-    return NULL;
+
+  if (MAT_NROWS(c) != n){
+      PyErr_SetString(PyExc_ValueError, "c has incompatible dimension with G");
+      freeDataAndConeOnly(d,k); return NULL;
   }
-  tmp_arr = PyArray_GETCONTIGUOUS(c);
-  c_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, doubleType);
-  Py_DECREF(tmp_arr);
-  d->c = (double *) PyArray_DATA(c_arr);
-  d->n = (int) PyArray_SIZE(c_arr); // loses precision
+  d->c = MAT_BUFD(c);
+
+  /* set h */
+  if (!Matrix_Check(h) || MAT_NCOLS(h) != 1 || MAT_ID(h) != DOUBLE) {
+    PyErr_SetString(PyExc_TypeError, "h must be a dense 'd' matrix with one column");
+    freeDataAndConeOnly(d,k); return NULL;
+  }
+
+  if (MAT_NROWS(h) != m){
+      PyErr_SetString(PyExc_ValueError, "h has incompatible dimension with G");
+      freeDataAndConeOnly(d,k); return NULL;
+  }
+  d->b = MAT_BUFD(h);
   
-  // check that q is a int array (and ensure it's of type "double")
-  if(q) {
-    if( !PyArray_ISINTEGER(q) ) {
-      PyErr_SetString(PDOSError, "q must be a numpy array of ints");
-      Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr); Py_DECREF(b_arr); Py_DECREF(c_arr);
-      freeDataAndConeOnly(d,k);
-      return NULL;
+  // set dimensions
+  d->m = m; d->n = n;
+  
+  /* get dims['f'] */
+  PyObject *freeObj = PyDict_GetItemString(dims, "f");
+  if(freeObj) {
+    if(PyInt_Check(freeObj) && ((k->f = (idxint) PyInt_AsLong(freeObj)) >= 0)) {
+      // do nothing
+    } else {
+      PyErr_SetString(PyExc_TypeError, "dims['f'] ought to be a nonnegative integer");
+      freeDataAndConeOnly(d,k); return NULL;
     }
-    tmp_arr = PyArray_GETCONTIGUOUS(q);
-    q_arr = (PyArrayObject *) PyArray_Cast(tmp_arr, intType);
-    Py_DECREF(tmp_arr);
-    k->q = (int *) PyArray_DATA(q_arr);
-    k->qsize = (int) PyArray_SIZE(q_arr); // loses precision
   }
   
-  // TODO: check that parameter values are correct
+  /* get dims['l'] */
+  PyObject *linearObj = PyDict_GetItemString(dims, "l");
+  if(linearObj) {
+    if(PyInt_Check(linearObj) && ((k->l = (idxint) PyInt_AsLong(linearObj)) >= 0)) {
+      // do nothing
+    } else {
+      PyErr_SetString(PyExc_TypeError, "dims['l'] ought to be a nonnegative integer");
+      freeDataAndConeOnly(d,k); return NULL;
+    }
+  }
+  
+  /* get dims['q'] */
+  PyObject *socObj = PyDict_GetItemString(dims, "q");
+  if(socObj) {
+    if (PyList_Check(socObj)) {
+      k->qsize = PyList_Size(socObj);
+      k->q = calloc(k->qsize, sizeof(idxint));
+      for (i = 0; i < k->qsize; ++i) {
+          PyObject *qi = PyList_GetItem(socObj, i);
+          if(PyInt_Check(qi) && ((k->q[i] = (idxint) PyInt_AsLong(qi)) > 0)) {
+            // do nothing
+          } else {
+            PyErr_SetString(PyExc_TypeError, "dims['q'] ought to be a list of positive integers");
+            freeDataAndConeOnly(d,k); return NULL;
+          }
+
+      }
+    } else {
+      PyErr_SetString(PyExc_TypeError, "dims['q'] ought to be a list");
+      freeDataAndConeOnly(d,k); return NULL;
+    }
+  }
+  
+  if(opts) {
+    PyObject *dictObj = NULL;
+    /* MAX_ITERS */
+    dictObj = PyDict_GetItemString(dims, "MAX_ITERS");
+    if(dictObj) {
+      if(PyInt_Check(dictObj) && ((d->MAX_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
+        // do nothing
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['MAX_ITERS'] ought to be a nonnegative integer");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+    /* VERBOSE */
+    dictObj = PyDict_GetItemString(dims, "VERBOSE");
+    if(dictObj) {
+      if(PyBool_Check(dictObj)) {
+        d->VERBOSE = (idxint) PyInt_AsLong(dictObj);
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['VERBOSE'] ought to be a boolean");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+    /* NORMALIZE */
+    dictObj = PyDict_GetItemString(dims, "NORMALIZE");
+    if(dictObj) {
+      if(PyBool_Check(dictObj)) {
+        d->NORMALIZE = (idxint) PyInt_AsLong(dictObj);
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['NORMALIZE'] ought to be a boolean");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+    
+    /* EPS_ABS */
+    dictObj = PyDict_GetItemString(dims, "EPS_ABS");
+    if(dictObj) {
+      if(PyFloat_Check(dictObj) && ((d->EPS_ABS = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
+        // do nothing
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['EPS_ABS'] ought to be a positive floating point value");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+    
+    /* ALPHA */
+    dictObj = PyDict_GetItemString(dims, "ALPHA");
+    if(dictObj) {
+      if(PyFloat_Check(dictObj)) {
+        d->ALPH = (double) PyFloat_AsDouble(dictObj);
+        if(d->ALPH >= 2.0 || d->ALPH <= 0.0) {
+          PyErr_SetString(PyExc_TypeError, "opts['ALPHA'] ought to be a floating point value between 0 and 2 (noninclusive)");
+          freeDataAndConeOnly(d,k); return NULL;
+        }
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['ALPHA'] ought to be a floating point value");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+
+#ifdef INDIRECT
+    /* CG_MAX_ITS */
+    dictObj = PyDict_GetItemString(dims, "CG_MAX_ITS");
+    if(dictObj) {
+      if(PyInt_Check(dictObj) && ((d->CG_MAX_ITS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
+        // do nothing
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['CG_MAX_ITS'] ought to be a nonnegative integer");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+
+    /* CG_TOL */
+    dictObj = PyDict_GetItemString(dims, "CG_TOL");
+    if(dictObj) {
+      if(PyFloat_Check(dictObj) && ((d->CG_TOL = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
+        // do nothing
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['CG_TOL'] ought to be a positive floating point value");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+#endif
+  }
   
   // solve the problem
   // TODO: preserve the workspace
   solution = pdos(d, k);
   
-  npy_intp dims[1];
-  dims[0] = d->n;
-  PyObject *primalSol = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, solution->x);
-  dims[0] = d->m;
-  PyObject *dualSol = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, solution->y);
-  PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:s}","x", primalSol, "y", dualSol, "status", solution->status);
+  /* x */
+  matrix *x;
+  if(!(x = Matrix_New(n,1,DOUBLE)))
+    return PyErr_NoMemory();
+  for(i = 0; i < n; ++i)
+    MAT_BUFD(x)[i] = solution->x[i];
+        
+  /* y */
+  matrix *y;
+  if(!(y = Matrix_New(m,1,DOUBLE)))
+    return PyErr_NoMemory();
+  for(i = 0; i < m; ++i)
+    MAT_BUFD(y)[i] = solution->y[i];
+  
+
+  PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:s}","x", x, "y", y, "status", solution->status);
   // give up ownership to the return dictionary
-  Py_DECREF(primalSol); Py_DECREF(dualSol); 
+  Py_DECREF(x); Py_DECREF(y); 
   
   // do some cleanup
   freeDataAndConeOnly(d,k);
-  Py_DECREF(Ax_arr); Py_DECREF(Ai_arr); Py_DECREF(Ap_arr); Py_DECREF(b_arr); Py_DECREF(c_arr);
-  if(q_arr)
-    Py_DECREF(q_arr);
 
   return returnDict;
 }
 
 static PyMethodDef PDOSMethods[] =
 {
-  {"solve", (PyCFunction)solve, METH_VARARGS | METH_KEYWORDS, 
+  {"solve", (PyCFunction)solve, METH_VARARGS, 
     "Solve a conic optimization problem."},
   {NULL, NULL, 0, NULL} // sentinel
 };
@@ -276,19 +318,10 @@ PyMODINIT_FUNC
   m = Py_InitModule("pdos_direct", PDOSMethods);
 #endif
   
-  import_array(); // for numpy support
-  
+  if (import_cvxopt() < 0) return; // for cvxopt support
+
   if(m == NULL)
     return;
-
-#ifdef INDIRECT
-  PDOSError = PyErr_NewException("pdos_indirect.error", NULL, NULL);
-#else
-  PDOSError = PyErr_NewException("pdos_direct.error", NULL, NULL);
-#endif
-
-  Py_INCREF(PDOSError);
-  PyModule_AddObject(m, "error", PDOSError);
   
   Py_AtExit(&cleanup);
 }

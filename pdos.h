@@ -19,7 +19,7 @@ typedef struct PROBLEM_DATA {
   idxint * Ai, * Ap;
   double * b, * c;
   idxint MAX_ITERS, CG_MAX_ITS;
-  double EPS_ABS, EPS_INFEAS, ALPH, CG_TOL;
+  double EPS_ABS, ALPH, CG_TOL;
   idxint VERBOSE, NORMALIZE;  // boolean
 } Data;
 
