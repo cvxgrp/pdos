@@ -27,31 +27,49 @@
 #include "pdos.h"
 #include <math.h>
 
-inline Work *commonWorkInit(Data *d) {
-  int n_plus_m = d->n + d->m;
+#ifndef MAX
+#define MAX(a,b) (a) > (b) ? (a) : (b)
+#endif
+
+static inline Work *commonWorkInit(const Data *d) {
   Work * w = PDOS_malloc(sizeof(Work));
-  w->l = 2*n_plus_m;
-  w->si = d->n;
-  w->ri = n_plus_m;
-  w->yi = n_plus_m + d->n;
-  w->z_half = PDOS_malloc(sizeof(double)*w->l);
-  w->z = PDOS_calloc(w->l,sizeof(double));
-  w->u = PDOS_calloc(w->l,sizeof(double));  
-  w->ztmp = PDOS_calloc(w->l,sizeof(double));
+  // ensure that x, s are contiguous in memory
+  w->x = PDOS_calloc(d->n + d->m,sizeof(double));
+  w->s = w->x + d->n;
+  w->stilde = PDOS_calloc(MAX(d->m,d->n),sizeof(double));
+  w->y = PDOS_calloc(d->m,sizeof(double));  
+  //w->xtmp = PDOS_calloc(d->n,sizeof(double));
 
   if(d->NORMALIZE) {
-    int i;
-    int Anz = d->Ap[d->n];
+    idxint i,j,k = 0;
+    idxint Anz = d->Ap[d->n];
+    double *rowsum = PDOS_calloc(d->m, sizeof(double));
+    double *colsum = PDOS_calloc(d->n, sizeof(double));
     // scale A,b,c
-    double ds, ps, normA = 0.0;
-    // frobenius norm
-    for(i = 0; i < Anz; ++i) {
-      normA = (normA > fabs(d->Ax[i])) ? normA : fabs(d->Ax[i]);
-      //normA += (d->Ax[i]*d->Ax[i]);//((double)d->m*d->n);
+    double ds, ps, normA = 0.0,normB = 0.0;
+    
+    for(i = 0; i < d->n; ++i) { // cols
+      for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
+        rowsum[d->Ai[k]] += fabs(d->Ax[k]);
+        colsum[i] += fabs(d->Ax[k]);            
+        k++;
+      }
     }
-    normA = sqrt(normA);
-    ds = pow((double)1.0/normA, (double)(d->n)/((double)(d->m + d->n)));
-    ps = pow((double)1.0/normA, (double)(d->m)/((double)(d->m + d->n)));
+    
+    // normA is max column sum
+    for(i = 0; i < d->n; ++i) {
+      normA = (normA > colsum[i]) ? normA : colsum[i];
+    }
+    
+    // normB is max row sum
+    for(i = 0; i < d->m; ++i) {
+      normB = (normB > rowsum[i]) ? normB : rowsum[i];
+    }
+    
+    PDOS_free(rowsum); PDOS_free(colsum);
+    
+    ds = pow((double)d->n/normA, (double)(d->n)/((double)(d->m + d->n)));
+    ps = pow((double)d->m/normB, (double)(d->m)/((double)(d->m + d->n)));
 
     for(i = 0; i < Anz; ++i) {
       d->Ax[i] *= ds*ps;

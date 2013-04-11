@@ -9,27 +9,19 @@
 struct PRIVATE_DATA {
 	cs * L; /* KKT, and factorization matrix L resp. */
 	double * D; /* diagonal matrix of factorization */
-	int * P; /* permutation of KKT matrix for factorization */
-
-  // precompue A*c and A'*b
-  double *Ac, *Atb;
-
-  // stuff for schur complements
-  double *alpha1, *alpha2;
-  double s;
+	idxint * P; /* permutation of KKT matrix for factorization */
 };
 
 // XXX: should be named LDL
 // also, these routines don't need to be "public"
-//void choleskyInit(cs * A, int P[], double **info);
-//void choleskyFactor(cs * A, int P[], int Pinv[], cs ** L, double **D);
-//void choleskySolve(double *x, double b[], cs * L, double D[], int P[]);
-Work * initWork(Data * d);
+//void choleskyInit(cs * A, idxint P[], double **info);
+//void choleskyFactor(cs * A, idxint P[], idxint Pinv[], cs ** L, double **D);
+//void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[]);
+Work * initWork(const Data * d);
 void freePriv(Work * w);
+void projectLinSys(const Data * d,Work * w);
 //cs * formKKT(Data * d, Work * w);
 //void factorize(Data * d,Work * w);
 
-extern void amd_info (double Info [ ]);
-extern int amd_order (int n, const int Ap [ ], const int Ai [ ], int P [ ], double Control [ ], double Info [ ]);
 
 #endif

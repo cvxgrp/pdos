@@ -1,6 +1,6 @@
 include pdos.mk
 
-OBJECTS = pdos.o linAlg.o common.o util.o cones.o cs.o
+OBJECTS = pdos.o util.o cones.o cs.o
 AMD_SOURCE = $(wildcard direct/amd_*.c)
 DIRECT_OBJECTS = direct/ldl.o $(AMD_SOURCE:.c=.o) 
 TARGETS = demo_direct demo_indirect
@@ -9,14 +9,12 @@ TARGETS = demo_direct demo_indirect
 	#lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
 default: lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
 
-pdos.o 		: pdos.h
-linAlg.o 	: linAlg.h
-common.o	: common.h
-util.o		: util.h
-cones.o		: cones.h
-cs.o			: cs.h
+pdos.o 		: pdos.h idxintDef.h common.h linAlg.h
+util.o		: util.h pdos.h
+cones.o		: cones.h idxintDef.h
+cs.o			: cs.h idxintDef.h
 
-direct/private.o				: direct/private.h
+direct/private.o				: direct/private.h common.h
 direct/ldl.o						: direct/ldl.h
 direct/amd_1.o					: direct/amd_internal.h direct/amd.h
 direct/amd_2.o					: direct/amd_internal.h direct/amd.h
@@ -32,7 +30,7 @@ direct/amd_postorder.o	: direct/amd_internal.h direct/amd.h
 direct/amd_preprocess.o	: direct/amd_internal.h direct/amd.h
 direct/amd_valid.o			: direct/amd_internal.h direct/amd.h
 
-indirect/private.o	: indirect/private.h
+indirect/private.o	: indirect/private.h common.h
 
 lib/libpdosdir.a: $(OBJECTS) direct/private.o  $(DIRECT_OBJECTS)
 	mkdir -p lib

@@ -1,26 +1,28 @@
 #ifndef CS_H_GUARD
 #define CS_H_GUARD
 
+#include "idxintDef.h"
+
 //#include <string.h>
 //#include <stdlib.h>
 
 typedef struct cs_sparse    /* matrix in compressed-column or triplet form */
 {
-    int nzmax ;     /* maximum number of entries */
-    int m ;         /* number of rows */
-    int n ;         /* number of columns */
-    int *p ;        /* column pointers (size n+1) or col indices (size nzmax) */
-    int *i ;        /* row indices, size nzmax */
+    idxint nzmax ;     /* maximum number of entries */
+    idxint m ;         /* number of rows */
+    idxint n ;         /* number of columns */
+    idxint *p ;        /* column pointers (size n+1) or col indices (size nzmax) */
+    idxint *i ;        /* row indices, size nzmax */
     double *x ;     /* numerical values, size nzmax */
-    int nz ;        /* # of entries in triplet matrix, -1 for compressed-col */
+    idxint nz ;        /* # of entries in triplet matrix, -1 for compressed-col */
 } cs ;
 
 cs *cs_compress (const cs *T);
-cs *cs_done (cs *C, void *w, void *x, int ok);
-cs *cs_spalloc (int m, int n, int nzmax, int values, int triplet);
+cs *cs_done (cs *C, void *w, void *x, idxint ok);
+cs *cs_spalloc (idxint m, idxint n, idxint nzmax, idxint values, idxint triplet);
 cs *cs_spfree (cs *A);
-double cs_cumsum (int *p, int *c, int n);
-int *cs_pinv (int const *p, int n);
-cs *cs_symperm (const cs *A, const int *pinv, int values);
+double cs_cumsum (idxint *p, idxint *c, idxint n);
+idxint *cs_pinv (idxint const *p, idxint n);
+cs *cs_symperm (const cs *A, const idxint *pinv, idxint values);
 
 #endif

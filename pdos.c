@@ -5,51 +5,47 @@ static const char* HEADER[] = {
   "Iter", 
   "ni(Ax+s-b)",
   " ni(A'y+c)",
-  " ni(Au+v) ",
-  " ni(A'w)  ",
   "    c'u   ",
   "   -b'w   ",
   "    eta   "
 };
-// static const int LENS[] = {
+// static const idxint LENS[] = {
 //   4, 14, 11, 18, 11, 8, 9, 3
 // }
-static const int HEADER_LEN = 8;
+static const idxint HEADER_LEN = 6;
 
 // problem state
-enum { SOLVED = 0, INFEASIBLE, UNBOUNDED, INDETERMINATE };
+enum { SOLVED = 0, INDETERMINATE };
 
 // to hold residual information
 struct resid {
   double p_res;
   double d_res;
-  double p_inf;
-  double d_inf;
   double p_obj;
   double d_obj;
   double eta;
 };
 
 // forward declare inline declarations
-static inline void relax(Data * d, Work * w);
-static inline void updateDualVars(Work * w);
-static inline void prepZVariable(Work *w);
-static inline void projectCones(Data * d,Work * w,Cone * k);
-static inline void sety(Data * d, Work * w, Sol * sol);
-static inline void setx(Data * d, Work * w, Sol * sol);
-static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state);
-static inline void printSummary(Data * d,Work * w,int i, struct resid *r);
+static inline void relax(const Data * d, Work * w);
+static inline void updateDualVars(const Data *d, Work * w);
+static inline void prepZVariable(const Data *d, Work *w);
+static inline void projectCones(const Data * d,Work * w,const Cone * k);
+static inline void sety(const Data * d, const Work * w, Sol * sol);
+static inline void setx(const Data * d, const Work * w, Sol * sol);
+static inline void getSolution(const Data * d, const Work * w, Sol * sol, idxint solver_state);
+static inline void printSummary(const Data * d,const Work * w,idxint i, struct resid *r);
 static inline void printHeader();
-static inline void printSol(Data * d, Sol * sol);
+static inline void printSol(const Data * d, const Sol * sol);
 static inline void freeWork(Work * w);
 
-Sol * pdos(Data * d, Cone * k)
+Sol * pdos(const Data * d, const Cone * k)
 {
   if(d == NULL || k == NULL) {
     return NULL;
   }
-	int i, STATE = INDETERMINATE;
-  struct resid residuals = { -1, -1, -1, -1, -1, -1, -1 };
+	idxint i, STATE = INDETERMINATE;
+  struct resid residuals = { -1, -1, -1, -1, -1 };
 
 	Work * w = initWork(d);
   if(d->VERBOSE) {
@@ -60,16 +56,15 @@ Sol * pdos(Data * d, Cone * k)
 		projectLinSys(d,w);
 		relax(d,w);
     projectCones(d,w,k);
-    updateDualVars(w);
+    updateDualVars(d,w);
     
     residuals.p_res = calcPriResid(d,w);
-    residuals.d_res = calcDualResid(d,w);
-    residuals.eta = calcSurrogateGap(d,w);
-        
-    residuals.p_inf = calcCertPriResid(d,w);
-    residuals.d_inf = calcCertDualResid(d,w);
-    residuals.p_obj = calcCertPriObj(d,w);
-    residuals.d_obj = calcCertDualObj(d,w);
+    // IMPORTANT: this function must come after calcPriResid
+    residuals.d_res = calcDualResid(d,w); 
+    residuals.p_obj = calcPriObj(d,w);
+    residuals.d_obj = calcDualObj(d,w);
+    residuals.eta = residuals.p_obj - residuals.d_obj;
+    
     
     // err = calcPriResid(d,w);
     // EPS_PRI = sqrt(w->l)*d->EPS_ABS + 
@@ -78,17 +73,6 @@ Sol * pdos(Data * d, Cone * k)
         residuals.d_res < d->EPS_ABS*w->primal_scale && 
         residuals.eta < d->EPS_ABS) {
       STATE = SOLVED;
-      break;
-    }
-    if (residuals.d_inf < d->EPS_INFEAS*w->dual_scale && 
-        residuals.p_inf < d->EPS_INFEAS*w->primal_scale && 
-        residuals.p_obj - residuals.d_obj < -d->EPS_INFEAS /* fix at 1e-2? relative? */) {
-      if (residuals.d_obj < d->EPS_INFEAS)
-        STATE = UNBOUNDED;
-      else if (-residuals.p_obj < d->EPS_INFEAS)
-        STATE = INFEASIBLE;
-      else
-        STATE = INDETERMINATE;
       break;
     }
 		if (d->VERBOSE && i % 10 == 0) printSummary(d,w,i, &residuals);
@@ -145,108 +129,108 @@ void free_sol(Sol *sol){
 
 static inline void freeWork(Work * w){
   freePriv(w);
-  PDOS_free(w->z_half);
-  PDOS_free(w->z);
-  PDOS_free(w->u);
-  PDOS_free(w->ztmp);
+  PDOS_free(w->x); // also frees w->s
+  w->s = NULL;
+  //PDOS_free(w->s);
+  PDOS_free(w->y);
+  PDOS_free(w->stilde);
   PDOS_free(w);
 }
 
-static inline void printSol(Data * d, Sol * sol){
-	int i;
+static inline void printSol(const Data * d, const Sol * sol){
+	idxint i;
 	PDOS_printf("%s\n",sol->status); 
 	if (sol->x != NULL){
 		for ( i=0;i<d->n; ++i){
+#ifdef DLONG
+			PDOS_printf("x[%li] = %4f\n",i, sol->x[i]);
+#else
 			PDOS_printf("x[%i] = %4f\n",i, sol->x[i]);
+#endif
 		}
 	}
 	if (sol->y != NULL){
 		for ( i=0;i<d->m; ++i){
+#ifdef DLONG
+			PDOS_printf("y[%li] = %4f\n",i, sol->y[i]);
+#else
 			PDOS_printf("y[%i] = %4f\n",i, sol->y[i]);
+#endif
 		}
 	}
 }
 
-static inline void updateDualVars(Work * w){
-  int i;
-  for(i = 0; i < w->l; ++i) { w->u[i] += (w->ztmp[i] - w->z[i]); }
+static inline void updateDualVars(const Data *d, Work * w){
+  idxint i;
+  for(i = 0; i < d->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i]); }
 }
 
-static inline void prepZVariable(Work *w){
-  int i;
-  for(i = 0; i < w->l; ++i) { w->z[i] = w->ztmp[i] + w->u[i]; }
+static inline void prepZVariable(const Data *d, Work *w){
+  idxint i;
+  for(i = 0; i < d->m; ++i) { w->s[i] = w->stilde[i] - w->y[i]; }
 }
 
-static inline void projectCones(Data *d,Work * w,Cone * k){
-  // memcpy(w->z, w->ztmp, w->l*sizeof(double));
-  // addScaledArray(w->z, w->u, w->l,1);
-  
-  // z = z_half + u
-  prepZVariable(w);
-  
-  /* x onto R^n */
-  // do nothing
+static inline void projectCones(const Data *d,Work * w,const Cone * k){
+  // s = stilde - y
+  // memcpy(w->s, w->stilde, d->m*sizeof(double));
+  // addScaledArray(w->s, w->y, d->m, -1);
+  // s = stilde - y
+  prepZVariable(d,w);
   
 	/* s onto K */
-	projCone(w->z + w->si, k);
-
-	/* r onto 0 */
-	memset(w->z + w->ri, 0, (sizeof(double)*d->n));
-  
-  /* y onto K^* */
-	projDualCone(w->z + w->yi, k);
+	projCone(w->s, k);
 }
 
-static inline void getSolution(Data * d, Work * w, Sol * sol, int solver_state){
+static inline void getSolution(const Data * d, const Work * w, Sol * sol, idxint solver_state){
   setx(d,w,sol);
   sety(d,w,sol);
   switch(solver_state) {
-    case SOLVED: memcpy(sol->status,"Solved", 7); break;
-    case INFEASIBLE: memcpy(sol->status,"Infeasible", 12); break;
-    case UNBOUNDED: memcpy(sol->status,"Unbounded", 11); break;
-    default: memcpy(sol->status, "Indeterminate", 15);
+    case SOLVED: memcpy(sol->status,"Solved", 7*sizeof(char)); break;
+    default: memcpy(sol->status, "Indeterminate", 15*sizeof(char));
   }
 }
 
-static inline void sety(Data * d,Work * w, Sol * sol){
+static inline void sety(const Data * d,const Work * w, Sol * sol){
 	sol->y = PDOS_malloc(sizeof(double)*d->m);
 	//memcpy(sol->y, w->z + w->yi, d->m*sizeof(double));
-  int i;
+  idxint i;
   for(i = 0; i < d->m; ++i) {
-    sol->y[i] = w->dual_scale * w->z[i + w->yi];
+    sol->y[i] = w->dual_scale * w->y[i];
   }
 }
 
-static inline void setx(Data * d,Work * w, Sol * sol){
+static inline void setx(const Data * d,const Work * w, Sol * sol){
 	sol->x = PDOS_malloc(sizeof(double)*d->n);
 	//memcpy(sol->x, w->z, d->n*sizeof(double));
-  int i;
+  idxint i;
   for(i = 0; i < d->n; ++i) {
-    sol->x[i] = w->primal_scale * w->z[i];
+    sol->x[i] = w->primal_scale * w->x[i];
   }
 }
 
-static inline void relax(Data * d,Work * w){   
-	int j;
-	for(j=0; j < w->l; ++j){
-		w->ztmp[j] = d->ALPH*w->z_half[j] + (1.0 - d->ALPH)*w->z[j];
+static inline void relax(const Data * d,Work * w){   
+	idxint j;
+	for(j=0; j < d->m; ++j){
+		w->stilde[j] = d->ALPH*w->stilde[j] + (1.0 - d->ALPH)*w->s[j];
 	}
 }
 
-static inline void printSummary(Data * d,Work * w,int i, struct resid *r){
+static inline void printSummary(const Data * d,const Work * w,idxint i, struct resid *r){
 	// PDOS_printf("Iteration %i, primal residual %4f, primal tolerance %4f\n",i,err,EPS_PRI);
+#ifdef DLONG
+  PDOS_printf("%*li | ", (int)strlen(HEADER[0]), i);
+#else
   PDOS_printf("%*i | ", (int)strlen(HEADER[0]), i);
+#endif
   PDOS_printf("%*.4f   ", (int)strlen(HEADER[1]), r->p_res); // p_res
   PDOS_printf("%*.4f   ", (int)strlen(HEADER[2]), r->d_res); // d_res
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_inf); // full(p_inf));
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_inf);//full(d_inf));
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[5]), r->p_obj);//full(p_obj));
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[6]), r->d_obj);//full(d_obj));
-  PDOS_printf("%*.4f\n", (int)strlen(HEADER[7]), r->eta);//full(eta));
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_obj);//full(p_obj));
+  PDOS_printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_obj);//full(d_obj));
+  PDOS_printf("%*.4f\n", (int)strlen(HEADER[5]), r->eta);//full(eta));
 }
 
 static inline void printHeader() {
-  int i, line_len;
+  idxint i, line_len;
   line_len = 0;
   for(i = 0; i < HEADER_LEN - 1; ++i) {
     PDOS_printf("%s | ", HEADER[i]);

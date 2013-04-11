@@ -2,10 +2,10 @@
 #include <math.h>
 
 /* in place projection (with branches) */
-static inline void projSelfDualCone(double *x, Cone * k)
+static inline void projSelfDualCone(double *x, const Cone * k)
 {
-  int i, j;
-  int count;
+  idxint i, j;
+  idxint count;
   
   /* project onto positive orthant */
   for(i = k->f; i < k->f+k->l; ++i)
@@ -41,7 +41,7 @@ static inline void projSelfDualCone(double *x, Cone * k)
   }
 }
 
-void projCone(double *x, Cone *k)
+void projCone(double *x, const Cone *k)
 {
   /* project zeros on zero cone */
   // "s" corresponding to free variables should be set to 0
@@ -49,8 +49,8 @@ void projCone(double *x, Cone *k)
   projSelfDualCone(x,k);
 }
 
-void projDualCone(double *x, Cone *k)
-{
-  projSelfDualCone(x, k);
-}
+// void projDualCone(double *x, Cone *k)
+// {
+//   projSelfDualCone(x, k);
+// }
 

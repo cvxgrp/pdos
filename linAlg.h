@@ -10,20 +10,20 @@
  */
 
 // x = b*a
-inline void setAsScaledArray(double *x, const double * a,const double b,int len) {
-  int i;
+static inline void setAsScaledArray(double *x, const double * a,const double b,idxint len) {
+  idxint i;
   for( i=0;i<len;++i ) x[i] = b*a[i];
 }
 
 // a*= b
-inline void scaleArray(double * a,const double b,int len){
-  int i;
+static inline void scaleArray(double * a,const double b,idxint len){
+  idxint i;
   for( i=0;i<len;++i) a[i]*=b;
 }
 
 // x'*y
-inline double innerProd(const double * x, const double * y, int len){
-  int i;
+static inline double innerProd(const double * x, const double * y, idxint len){
+  idxint i;
   double ip = 0.0;
   for ( i=0;i<len;++i){
     ip += x[i]*y[i];
@@ -32,8 +32,8 @@ inline double innerProd(const double * x, const double * y, int len){
 }
 
 // ||v||_2^2
-inline double calcNormSq(const double * v,int len){
-  int i;
+static inline double calcNormSq(const double * v,idxint len){
+  idxint i;
   double nmsq = 0.0;
   for ( i=0;i<len;++i){
     nmsq += v[i]*v[i];
@@ -42,14 +42,14 @@ inline double calcNormSq(const double * v,int len){
 }
 
 // ||v||_2
-inline double calcNorm(const double * v,int len){
+static inline double calcNorm(const double * v,idxint len){
   return sqrt(calcNormSq(v, len));
 }
 
 // ||v||_inf
-inline double calcNormInf(const double *v, int len) {
+static inline double calcNormInf(const double *v, idxint len) {
   double value, max = 0;
-  int i;
+  idxint i;
   // compute norm_inf
   for(i = 0; i < len; ++i) {
     value = fabs(v[i]);
@@ -59,23 +59,23 @@ inline double calcNormInf(const double *v, int len) {
 }
 
 // saxpy a += sc*b
-inline void addScaledArray(double * a, const double * b, int n, const double sc){
-  int i;
+static inline void addScaledArray(double * a, const double * b, idxint n, const double sc){
+  idxint i;
   for (i=0;i<n;++i){
     a[i] += sc*b[i];
   }
 }
 
 // y += alpha*A*x
-inline void accumByScaledA(const Data *d, const double *x, const double sc, double *y){
+static inline void accumByScaledA(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
   /* y += A*x */
-  int p, j, n, *Ap, *Ai ;
+  idxint p, j, n, *Ap, *Ai ;
   double *Ax ;
   n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
 
-  int c1, c2;
+  idxint c1, c2;
   
   for (j = 0 ; j < n ; j++)
   {
@@ -88,15 +88,15 @@ inline void accumByScaledA(const Data *d, const double *x, const double sc, doub
 }
 
 // y += alpha*A'*x
-inline void accumByScaledATrans(const Data *d, const double *x, const double sc, double *y){
+static inline void accumByScaledATrans(const Data *d, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
   /* y += A'*x */
-  int p, j, n, *Ap, *Ai ;
+  idxint p, j, n, *Ap, *Ai ;
   double *Ax ;
   n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
 
-  int c1, c2;
+  idxint c1, c2;
   
   for (j = 0 ; j < n ; j++)
   {
@@ -108,95 +108,105 @@ inline void accumByScaledATrans(const Data *d, const double *x, const double sc,
   }
 }
 
-inline void accumByA(const Data *d, const double *x, double *y) {
+// y = A*x
+static inline void multByA(const Data *d, const double *x, double *y){
+  // assumes memory storage exists for y
+  
+  /* y = A*x */
+  idxint p, j, n, *Ap, *Ai ;
+  double *Ax ;
+  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+
+  idxint c1, c2;
+  
+  memset(y,0,d->m*sizeof(double));
+  
+  for (j = 0 ; j < n ; j++)
+  {
+    c1 = Ap[j]; c2 = Ap[j+1];
+    for (p = c1 ; p < c2 ; p++)        
+    {   
+      y[Ai[p]] += Ax[p] * x[ j ] ;
+    }
+  }
+}
+
+// y += A*x
+static inline void accumByA(const Data *d, const double *x, double *y) {
   accumByScaledA(d,x,1.0,y);
 }
 
-inline void accumByATrans(const Data *d, const double *x, double *y) {
+// y += A'*x
+static inline void accumByATrans(const Data *d, const double *x, double *y) {
   accumByScaledATrans(d,x,1.0,y);
 }
 
-inline void decumByA(const Data *d, const double *x, double *y) {
+// y -= A*x
+static inline void decumByA(const Data *d, const double *x, double *y) {
   accumByScaledA(d,x,-1.0,y);
 }
 
-inline void decumByATrans(const Data *d, const double *x, double *y) {
+// y -= A'*x
+static inline void decumByATrans(const Data *d, const double *x, double *y) {
   accumByScaledATrans(d,x,-1.0,y);
 }
 
 // norm(A*x + s - b, 'inf')/normA
-inline double calcPriResid(const Data *d, Work *w) {
-  int i = 0;
-  for(i = w->si; i < w->ri; ++i) {
-    w->ztmp[i] = w->z[i] - d->b[i - w->si];
-  }
-  accumByA(d, w->z, w->ztmp + (w->si));
+static inline double calcPriResid(const Data *d, Work *w) {
+  // idxint i = 0;
+  // for(i = 0; i < d->m; ++i) {
+  //   // using stilde as temp vector
+  //   w->stilde[i] = w->s[i] - d->b[i];
+  // }
+  // accumByA(d, w->x, w->stilde);
+  
+  // equiv to -(A*x + s - b)
+  addScaledArray(w->stilde, w->s, d->m, -1); 
 
-  return calcNormInf(w->ztmp + (w->si), d->m); // TODO: normalize by "normA"
+  return calcNormInf(w->stilde, d->m); // TODO: normalize by "normA"
 }
 
 // norm(A*y + c, 'inf')/normB
-inline double calcDualResid(const Data *d, Work *w) {
-  memcpy(w->ztmp, d->c, (d->n)*sizeof(double));
-  accumByATrans(d, w->z + (w->yi), w->ztmp);
-  return calcNormInf(w->ztmp, d->n); // TODO: normalize by "normB"
+static inline double calcDualResid(const Data *d, Work *w) {
+  //
+  // WARNING: this function must be called *after* calcPriResid
+  //
+  // assumes stilde allocates max(d->m,d->n) memory
+  memcpy(w->stilde, d->c, (d->n)*sizeof(double));
+  accumByATrans(d, w->y, w->stilde);
+  return calcNormInf(w->stilde, d->n); // TODO: normalize by "normB"
 }
 
-// c'*x + b'*y
-inline double calcSurrogateGap(const Data *d, Work *w) {
-  return innerProd(d->c, w->z, d->n) + innerProd(d->b, w->z + (w->yi), d->m);
+// c'*x
+static inline double calcPriObj(const Data *d, Work *w) {
+  return innerProd(d->c, w->x, d->n);
 }
 
-// partition w->u = (-r_c, -y_c, -x_c, -s_c) or (0, -w, -u, -v)
-//                  (xi, si, ri, yi)
-// norm(A*u + v, 'inf')/normA
-inline double calcCertPriResid(const Data *d, Work *w) {
-  // w->u is negative of what we're interested in
-  memcpy(w->ztmp + w->si, w->u + (w->yi), (d->m)*sizeof(double));
-  accumByA(d, w->u + (w->ri), w->ztmp + (w->si));
-
-  return calcNormInf(w->ztmp + (w->si), d->m); // TODO: normalize by "normA"
-}
-
-// norm(A'*w, 'inf')/normB
-inline double calcCertDualResid(const Data *d, Work *w) {
-  memset(w->ztmp, 0, (d->n)*sizeof(double));
-  accumByATrans(d, w->u + (w->si), w->ztmp);
-  return calcNormInf(w->ztmp, d->n); // TODO: normalize by "normB"
-}
-
-// c'*u
-inline double calcCertPriObj(const Data *d, Work *w) {
-  // result is negated since w->u is negative of what we're interested in
-  return -innerProd(d->c, w->u + (w->ri), d->n);
-}
-
-// -b'*w
-inline double calcCertDualObj(const Data *d, Work *w) {
-  // result is negated since w->u is negative of what we're interested in
-  return innerProd(d->b, w->u + (w->si), d->m);
+// -b'*y
+static inline double calcDualObj(const Data *d, Work *w) {
+  return -innerProd(d->b, w->y, d->m);
 }
 
 
 // // x = b*a
-// void setAsScaledArray(double *x, const double * a,const double b,int len);
+// void setAsScaledArray(double *x, const double * a,const double b,idxint len);
 // 
 // // a*= b
-// void scaleArray(double * a,const double b,int len);
+// void scaleArray(double * a,const double b,idxint len);
 // 
 // // x'*y
-// double innerProd(const double * x, const double * y, int len);
+// double innerProd(const double * x, const double * y, idxint len);
 // 
 // // ||v||_2^2
-// double calcNormSq(const double * v,int len);
+// double calcNormSq(const double * v,idxint len);
 // 
 // // ||v||_2
-// double calcNorm(const double * v,int len);
+// double calcNorm(const double * v,idxint len);
 // 
 // // ||v||_inf
-// double calcNormInf(const double *v, int len);
+// double calcNormInf(const double *v, idxint len);
 // // saxpy
-// void addScaledArray(double * a, const double * b, int n, const double sc);
+// void addScaledArray(double * a, const double * b, idxint n, const double sc);
 // // y += A*x
 // void accumByA(const Data *d, const double *x, double *y);
 // // y += A'*x

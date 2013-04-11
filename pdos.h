@@ -6,32 +6,38 @@
 // #include direct/private.h
 // #include indirect/private.h
 
+// use the same type for index representation as in SuiteSparse
+// coincidentally, Python uses the same type (long)
+#include "idxintDef.h"
+
+
 /* struct that containing standard problem data */
 typedef struct PROBLEM_DATA {
-  int n, m; /* problem dimensions */
+  idxint n, m; /* problem dimensions */
   /* problem data, A, b, c: */
   double * Ax;
-  int * Ai, * Ap;
+  idxint * Ai, * Ap;
   double * b, * c;
-  int MAX_ITERS, CG_MAX_ITS;
+  idxint MAX_ITERS, CG_MAX_ITS;
   double EPS_ABS, EPS_INFEAS, ALPH, CG_TOL;
-  int VERBOSE, NORMALIZE;  // boolean
+  idxint VERBOSE, NORMALIZE;  // boolean
 } Data;
 
 typedef struct SOL_VARS {
-  double * x, * y;
+  double *x, *y;
   char status[16];
 } Sol;
 
 typedef struct PRIVATE_DATA Priv;
 
 typedef struct WORK {
-  int l;
-  int si, ri, yi; // xi = 0
-
   // primal variables: z_half and z, dual variable: u
   // ztmp is just a temporary variable for memory
-  double *z_half, *z, *ztmp, *u;
+  // x in R^n
+  // s, y, stilde in R^m
+  double *x, *s, *y, *stilde;
+  double *xtmp;
+  
   // pointers to memory locations
   // double *x_half, *s_half, *r_half, *y_half;
   // double *x, *s, *r, *y;
@@ -60,7 +66,7 @@ typedef struct WORK {
 // s_bar = u(2*n+m+1:end)
   
 // //double *uv,*uv_t,*lam,*uv_h; /* variables */
-// int n, m; // do we need it? probably not
+// idxint n, m; // do we need it? probably not
 // 
 // // this assumes that the first n components of the dual variable u
 // // are zero to begin with
@@ -93,7 +99,7 @@ typedef struct WORK {
 #include "common.h"
 
 // these are actually library "api"'s
-Sol * pdos(Data * d, Cone * k);
+Sol * pdos(const Data * d, const Cone * k);
 void free_data(Data *d, Cone *k);
 void free_sol(Sol *sol);
 
@@ -102,14 +108,14 @@ void free_sol(Sol *sol);
 //void projectLinSys(Data * d, Work * w);
 //void sety(Data * d, Work * w, Sol * sol);
 //void setx(Data * d, Work * w, Sol * sol);
-//void printSummary(Data * d,Work * w,int i, double err, double EPS_PRI);
+//void printSummary(Data * d,Work * w,idxint i, double err, double EPS_PRI);
 //void printSol(Data * d, Sol * sol);
 //void freeWork(Work * w);
 //void freePriv(Work * w);
 
 // these are pulled in from private.o
-Work * initWork(Data * d);
-void projectLinSys(Data * d, Work * w);
+Work * initWork(const Data * d);
+void projectLinSys(const Data * d, Work * w);
 void freePriv(Work * w);
 
 
