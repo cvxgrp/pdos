@@ -191,7 +191,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   if(opts) {
     PyObject *dictObj = NULL;
     /* MAX_ITERS */
-    dictObj = PyDict_GetItemString(dims, "MAX_ITERS");
+    dictObj = PyDict_GetItemString(opts, "MAX_ITERS");
     if(dictObj) {
       if(PyInt_Check(dictObj) && ((d->MAX_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
         // do nothing
@@ -201,7 +201,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       }
     }
     /* VERBOSE */
-    dictObj = PyDict_GetItemString(dims, "VERBOSE");
+    dictObj = PyDict_GetItemString(opts, "VERBOSE");
     if(dictObj) {
       if(PyBool_Check(dictObj)) {
         d->VERBOSE = (idxint) PyInt_AsLong(dictObj);
@@ -211,7 +211,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       }
     }
     /* NORMALIZE */
-    dictObj = PyDict_GetItemString(dims, "NORMALIZE");
+    dictObj = PyDict_GetItemString(opts, "NORMALIZE");
     if(dictObj) {
       if(PyBool_Check(dictObj)) {
         d->NORMALIZE = (idxint) PyInt_AsLong(dictObj);
@@ -222,7 +222,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     }
     
     /* EPS_ABS */
-    dictObj = PyDict_GetItemString(dims, "EPS_ABS");
+    dictObj = PyDict_GetItemString(opts, "EPS_ABS");
     if(dictObj) {
       if(PyFloat_Check(dictObj) && ((d->EPS_ABS = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
         // do nothing
@@ -233,7 +233,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     }
     
     /* ALPHA */
-    dictObj = PyDict_GetItemString(dims, "ALPHA");
+    dictObj = PyDict_GetItemString(opts, "ALPHA");
     if(dictObj) {
       if(PyFloat_Check(dictObj)) {
         d->ALPH = (double) PyFloat_AsDouble(dictObj);
@@ -249,7 +249,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
 
 #ifdef INDIRECT
     /* CG_MAX_ITS */
-    dictObj = PyDict_GetItemString(dims, "CG_MAX_ITS");
+    dictObj = PyDict_GetItemString(opts, "CG_MAX_ITS");
     if(dictObj) {
       if(PyInt_Check(dictObj) && ((d->CG_MAX_ITS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
         // do nothing
@@ -260,7 +260,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     }
 
     /* CG_TOL */
-    dictObj = PyDict_GetItemString(dims, "CG_TOL");
+    dictObj = PyDict_GetItemString(opts, "CG_TOL");
     if(dictObj) {
       if(PyFloat_Check(dictObj) && ((d->CG_TOL = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
         // do nothing
