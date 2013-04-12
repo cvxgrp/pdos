@@ -280,16 +280,13 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   matrix *x;
   if(!(x = Matrix_New(n,1,DOUBLE)))
     return PyErr_NoMemory();
-  for(i = 0; i < n; ++i)
-    MAT_BUFD(x)[i] = solution->x[i];
+  memcpy(MAT_BUFD(x), solution->x, n*sizeof(double));
         
   /* y */
   matrix *y;
   if(!(y = Matrix_New(m,1,DOUBLE)))
     return PyErr_NoMemory();
-  for(i = 0; i < m; ++i)
-    MAT_BUFD(y)[i] = solution->y[i];
-  
+  memcpy(MAT_BUFD(y), solution->y, m*sizeof(double));
 
   PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:s}","x", x, "y", y, "status", solution->status);
   // give up ownership to the return dictionary
