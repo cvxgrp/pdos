@@ -38,7 +38,6 @@ static inline Work *commonWorkInit(const Data *d) {
   w->stilde = w->x + d->n;
   w->s = PDOS_calloc(d->m,sizeof(double));
   w->y = PDOS_calloc(d->m,sizeof(double));  
-  //w->xtmp = PDOS_calloc(d->n,sizeof(double));
 
   if(d->NORMALIZE) {
     idxint i,j,k = 0;
@@ -56,12 +55,12 @@ static inline Work *commonWorkInit(const Data *d) {
       }
     }
     
-    // normA is max column sum
+    // normA is max column sum (norm(A,1))
     for(i = 0; i < d->n; ++i) {
       normA = (normA > colsum[i]) ? normA : colsum[i];
     }
     
-    // normB is max row sum
+    // normB is max row sum (norm(A,'inf'))
     for(i = 0; i < d->m; ++i) {
       normB = (normB > rowsum[i]) ? normB : rowsum[i];
     }
@@ -70,7 +69,7 @@ static inline Work *commonWorkInit(const Data *d) {
     
     ds = pow((double)d->n/normA, (double)(d->n)/((double)(d->m + d->n)));
     ps = pow((double)d->m/normB, (double)(d->m)/((double)(d->m + d->n)));
-
+    
     for(i = 0; i < Anz; ++i) {
       d->Ax[i] *= ds*ps;
     }
@@ -87,6 +86,10 @@ static inline Work *commonWorkInit(const Data *d) {
     w->dual_scale = 1.0;
     w->primal_scale = 1.0;
   }
+  
+  w->rho = 1;
+  w->sigma = 1;
+  
   return w;
 }
 

@@ -50,10 +50,15 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    * `opts` is an optional dictionary with
    *    `opts['MAX_ITERS']` is an integer. Sets the maximum number of ADMM iterations.
    *        Defaults to 2000.
+   *    `opts['SEARCH_ITERS']` is an integer. Sets the maximum number of iterations
+   *        used to search for rho and sigma. Defaults to 10.
    *    `opts['EPS_ABS']` is a double. Sets the quitting tolerance for ADMM. 
    *        Defaults to 1e-3.
    *    `opts['ALPHA']` is a double in (0,2) (non-inclusive). Sets the over-relaxation
    *        parameter. Defaults to 1.0.
+   *    `opts['BETA']` is a double in [0,1] (inclusive). Sets the smoothing
+   *        parameter. Defaults to 0.01.
+   *    `opts['TAU']` is a double. Sets the threshold for ZERO. Defaults to 1e-8.
    *    `opts['VERBOSE']` is an integer (or Boolean) either 0 or 1. Sets the verbosity of
    *        the solver. Defaults to 1 (or True).
    *    `opts['NORMALIZE']` is an integer (or Boolean) either 0 or 1. Tells the solver to
@@ -75,6 +80,9 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   d->MAX_ITERS = 2000;
   d->EPS_ABS = 1e-3;
   d->ALPH = 1.0;
+  d->BETA = 0.01;
+  d->TAU = 1e-8;
+  d->SEARCH_ITERS = 10;
   d->VERBOSE = 1;
 #ifdef INDIRECT
   d->CG_MAX_ITS = 20;
@@ -200,6 +208,17 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
         freeDataAndConeOnly(d,k); return NULL;
       }
     }
+    
+    /* SEARCH_ITERS */
+    dictObj = PyDict_GetItemString(opts, "SEARCH_ITERS");
+    if(dictObj) {
+      if(PyInt_Check(dictObj) && ((d->SEARCH_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
+        // do nothing
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['SEARCH_ITERS'] ought to be a nonnegative integer");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
     /* VERBOSE */
     dictObj = PyDict_GetItemString(opts, "VERBOSE");
     if(dictObj) {
@@ -246,6 +265,33 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
         freeDataAndConeOnly(d,k); return NULL;
       }
     }
+    
+    /* BETA */
+    dictObj = PyDict_GetItemString(opts, "BETA");
+    if(dictObj) {
+      if(PyFloat_Check(dictObj)) {
+        d->BETA = (double) PyFloat_AsDouble(dictObj);
+        if(d->BETA > 1.0 || d->BETA < 0.0) {
+          PyErr_SetString(PyExc_TypeError, "opts['BETA'] ought to be a floating point value between 0 and 1 (inclusive)");
+          freeDataAndConeOnly(d,k); return NULL;
+        }
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['BETA'] ought to be a floating point value");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+    
+    /* TAU */
+    dictObj = PyDict_GetItemString(opts, "TAU");
+    if(dictObj) {
+      if(PyFloat_Check(dictObj) && ((d->TAU = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
+        // do nothing
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['TAU'] ought to be a positive floating point value");
+        freeDataAndConeOnly(d,k); return NULL;
+      }
+    }
+
 
 #ifdef INDIRECT
     /* CG_MAX_ITS */

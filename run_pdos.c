@@ -49,9 +49,11 @@ void read_in_data(FILE * fp,Data * d, Cone * k){
   }
   fscanf(fp, "%li", &(d->MAX_ITERS));
   fscanf(fp, "%li", &(d->CG_MAX_ITS)); 
+  fscanf(fp, "%li", &(d->FIXED)); 
 
   fscanf(fp, "%lf", &(d->ALPH));
-  // fscanf(fp, "%lf", &(d->UNDET_TOL)); 
+  fscanf(fp, "%lf", &(d->BETA));
+  fscanf(fp, "%lf", &(d->TAU));
   fscanf(fp, "%lf", &(d->EPS_ABS)); 
   //fscanf(fp, "%lf", &(d->EPS_INFEAS));
   fscanf(fp, "%lf", &(d->CG_TOL));
@@ -101,8 +103,11 @@ void read_in_data(FILE * fp,Data * d, Cone * k){
   }
   fscanf(fp, "%i", &(d->MAX_ITERS));
   fscanf(fp, "%i", &(d->CG_MAX_ITS)); 
+  fscanf(fp, "%i", &(d->SEARCH_ITERS)); 
 
   fscanf(fp, "%lf", &(d->ALPH));
+  fscanf(fp, "%lf", &(d->BETA));
+  fscanf(fp, "%lf", &(d->TAU));
   // fscanf(fp, "%lf", &(d->UNDET_TOL)); 
   fscanf(fp, "%lf", &(d->EPS_ABS)); 
   fscanf(fp, "%lf", &(d->EPS_INFEAS));

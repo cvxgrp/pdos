@@ -26,11 +26,11 @@ static inline void prepArgument(const Data *d, Work *w) {
   idxint i;  
   // for (i = 0; i < d->n; i++) { 
   //   // set x = (x - c)
-  //   w->x[i] -= d->c[i];
+  //   w->x[i] -= d->c[i]/w->rho;
   // }
   for (i = 0; i < d->m; i++) { 
-    // set s_half = (s + y - b)
-    w->stilde[i] = w->s[i] + w->y[i] - d->b[i];
+    // set s_half = (s + y - b/sigma)
+    w->stilde[i] = w->s[i] + w->y[i] - d->b[i]/w->sigma;
   }
 }
 
@@ -43,16 +43,16 @@ static inline void cgCustom(const Data *d, Work *w, idxint max_its,double tol){
   double *q = w->p->q;
   double *Ax = w->p->Ax;
   double *x = w->x; // contains x
-  const double *s = w->stilde; // contains v - b
+  const double *s = w->stilde; // contains v - b/sigma
   
 	double alpha, beta, qsnew_sq=0;
   double tol_sq = tol*tol;  // XXX: could be a very small number...
   
   /* q = -c - A'*(A*x - b + v) */
   memcpy(Ax, s, (d->m)*sizeof(double));
-  setAsScaledArray(q,d->c,-1,d->n);  // q = -c
-  accumByA(d,x,Ax);   // Ax = A*x + (v - b)
-  decumByATrans(d,Ax,q); // q = -c - A'*(A*x - b + v)
+  setAsScaledArray(q,d->c,-(1.0/w->rho),d->n);  // q = -c/rho
+  accumByA(d,x,Ax);   // Ax = A*x + (v - b/sigma)
+  decumByATrans(d,Ax,q); // q = -c/rho - A'*(A*x - b/sigma + v)
   
   // p = q
 	memcpy(p,q,n*sizeof(double));
@@ -104,8 +104,9 @@ void projectLinSys(const Data * d, Work * w){
   // solve (I+A'*A)*x = u + A'*(b - v)
   cgCustom(d, w, d->CG_MAX_ITS, d->CG_TOL);
   
-  // stilde = b - A*x
-  memcpy(w->stilde, d->b, d->m*sizeof(double));
+  // stilde = b/sigma - A*x
+  setAsScaledArray(w->stilde,d->b,(1.0/w->sigma),d->m); 
+  
   // stilde -= A*x
   decumByA(d, w->x, w->stilde);
 }     

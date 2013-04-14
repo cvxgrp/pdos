@@ -20,11 +20,11 @@ static inline void prepArgument(const Data *d, Work *w) {
   idxint i;  
   for (i = 0; i < d->n; i++) { 
     // set x = -(x - c)
-    w->x[i] = d->c[i] - w->x[i];
+    w->x[i] = d->c[i]/w->rho - w->x[i];
   }
   for (i = 0; i < d->m; i++) { 
     // set s_half = (b - (s + y))
-    w->stilde[i] = d->b[i] - (w->s[i] + w->y[i]);
+    w->stilde[i] = d->b[i]/w->sigma - (w->s[i] + w->y[i]);
   }
 }
 
@@ -33,8 +33,9 @@ void projectLinSys(const Data *d, Work * w){
   // (puts it in w->x)  
   prepArgument(d,w);  
   choleskySolve(w->x, w->x, w->p->L, w->p->D, w->p->P);  
-  // stilde = b - A*x
-  memcpy(w->stilde, d->b, d->m*sizeof(double));
+  // stilde = b/sigma - A*x
+  setAsScaledArray(w->stilde,d->b,(1/w->sigma),d->m); 
+  // memcpy(w->stilde, d->b, d->m*sizeof(double));
   // stilde -= A*x
   decumByA(d, w->x, w->stilde);  
 }

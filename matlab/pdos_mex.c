@@ -42,10 +42,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   d->c = mxGetPr(c_mex);
   
   d->ALPH = (double)*mxGetPr(mxGetField(params,0,"ALPHA"));
+  d->BETA = (double)*mxGetPr(mxGetField(params,0,"BETA"));
+  d->TAU = (double)*mxGetPr(mxGetField(params,0,"TAU"));
+  d->SEARCH_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"SEARCH_ITERS"));
   //d->UNDET_TOL = (double)*mxGetPr(mxGetField(params,0,"UNDET_TOL"));
   d->MAX_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"MAX_ITERS"));
   d->EPS_ABS = (double)*mxGetPr(mxGetField(params,0,"EPS_ABS"));
-  d->EPS_INFEAS = (double)*mxGetPr(mxGetField(params,0,"EPS_INFEAS"));
+  //d->EPS_INFEAS = (double)*mxGetPr(mxGetField(params,0,"EPS_INFEAS"));
 
   d->CG_MAX_ITS = (idxint)*mxGetPr(mxGetField(params,0,"CG_MAX_ITS"));
   d->CG_TOL = (double)*mxGetPr(mxGetField(params,0,"CG_TOL"));

@@ -131,6 +131,28 @@ static inline void multByA(const Data *d, const double *x, double *y){
   }
 }
 
+// y = A'*x
+static inline void multByATrans(const Data *d, const double *x, double *y){
+  // assumes memory storage exists for y
+  
+  /* y = A'*x */
+  idxint p, j, n, *Ap, *Ai ;
+  double *Ax ;
+  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+
+  idxint c1, c2;
+  
+  for (j = 0 ; j < n ; j++)
+  {
+    c1 = Ap[j]; c2 = Ap[j+1];
+    y[j] = 0.0;
+    for (p = c1 ; p < c2 ; p++)        
+    {   
+      y[j] += Ax[p] * x[ Ai[p] ] ;
+    }
+  }
+}
+
 // y += A*x
 static inline void accumByA(const Data *d, const double *x, double *y) {
   accumByScaledA(d,x,1.0,y);
@@ -153,38 +175,35 @@ static inline void decumByATrans(const Data *d, const double *x, double *y) {
 
 // norm(A*x + s - b, 'inf')/normA
 static inline double calcPriResid(const Data *d, Work *w) {
-  // idxint i = 0;
-  // for(i = 0; i < d->m; ++i) {
-  //   // using stilde as temp vector
-  //   w->stilde[i] = w->s[i] - d->b[i];
-  // }
-  // accumByA(d, w->x, w->stilde);
+  idxint i = 0;
+  for(i = 0; i < d->m; ++i) {
+    // using stilde as temp vector
+    w->stilde[i] = w->sigma*w->s[i] - d->b[i];
+  }
+  accumByScaledA(d, w->x, w->sigma, w->stilde);
   
-  // equiv to -(A*x + s - b)
-  addScaledArray(w->stilde, w->s, d->m, -1); 
+  // equiv to -(A*x + s - b) when alpha = 1
+  //addScaledArray(w->stilde, w->s, d->m, -1); 
 
   return calcNormInf(w->stilde, d->m); // TODO: normalize by "normA"
 }
 
 // norm(A*y + c, 'inf')/normB
 static inline double calcDualResid(const Data *d, Work *w) {
-  //
-  // WARNING: this function must be called *after* calcPriResid
-  //
   // assumes stilde allocates max(d->m,d->n) memory
   memcpy(w->stilde, d->c, (d->n)*sizeof(double));
-  accumByATrans(d, w->y, w->stilde);
+  accumByScaledATrans(d, w->y, w->rho, w->stilde);
   return calcNormInf(w->stilde, d->n); // TODO: normalize by "normB"
 }
 
 // c'*x
-static inline double calcPriObj(const Data *d, Work *w) {
-  return innerProd(d->c, w->x, d->n);
+static inline double calcPriObj(const Data *d, const Work *w) {
+  return w->sigma*innerProd(d->c, w->x, d->n);
 }
 
 // -b'*y
-static inline double calcDualObj(const Data *d, Work *w) {
-  return -innerProd(d->b, w->y, d->m);
+static inline double calcDualObj(const Data *d, const Work *w) {
+  return -w->rho*innerProd(d->b, w->y, d->m);
 }
 
 

@@ -18,8 +18,10 @@ typedef struct PROBLEM_DATA {
   double * Ax;
   idxint * Ai, * Ap;
   double * b, * c;
-  idxint MAX_ITERS, CG_MAX_ITS;
-  double EPS_ABS, ALPH, CG_TOL;
+  // SEARCH_ITERS is number of iterations to do rho, sigma search
+  idxint MAX_ITERS, CG_MAX_ITS, SEARCH_ITERS;
+  // BETA is smoothing parameter, TAU is lower bound on line search
+  double EPS_ABS, ALPH, CG_TOL, BETA, TAU;
   idxint VERBOSE, NORMALIZE;  // boolean
 } Data;
 
@@ -31,18 +33,14 @@ typedef struct SOL_VARS {
 typedef struct PRIVATE_DATA Priv;
 
 typedef struct WORK {
-  // primal variables: z_half and z, dual variable: u
-  // ztmp is just a temporary variable for memory
   // x in R^n
   // s, y, stilde in R^m
   double *x, *s, *y, *stilde;
-  double *xtmp;
   
-  // pointers to memory locations
-  // double *x_half, *s_half, *r_half, *y_half;
-  // double *x, *s, *r, *y;
-  // double *r_bar, *y_bar, *x_bar, *s_bar;
   double dual_scale, primal_scale;  // A = dual_scale*A*primal_scale
+  
+  double rho, sigma;
+  
   Priv * p;
 } Work;
 
