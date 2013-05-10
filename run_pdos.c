@@ -49,7 +49,7 @@ void read_in_data(FILE * fp,Data * d, Cone * k){
   }
   fscanf(fp, "%li", &(d->MAX_ITERS));
   fscanf(fp, "%li", &(d->CG_MAX_ITS)); 
-  fscanf(fp, "%li", &(d->FIXED)); 
+  fscanf(fp, "%li", &(d->SEARCH_ITERS)); 
 
   fscanf(fp, "%lf", &(d->ALPH));
   fscanf(fp, "%lf", &(d->BETA));
