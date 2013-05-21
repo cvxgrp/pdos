@@ -67,13 +67,13 @@ static inline void addScaledArray(double * a, const double * b, idxint n, const 
 }
 
 // y += alpha*A*x
-static inline void accumByScaledA(const Data *d, const double *x, const double sc, double *y){
+static inline void accumByScaledA(const Work *w, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
   /* y += A*x */
   idxint p, j, n, *Ap, *Ai ;
   double *Ax ;
-  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+  n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
   
@@ -88,13 +88,13 @@ static inline void accumByScaledA(const Data *d, const double *x, const double s
 }
 
 // y += alpha*A'*x
-static inline void accumByScaledATrans(const Data *d, const double *x, const double sc, double *y){
+static inline void accumByScaledATrans(const Work *w, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
   
   /* y += A'*x */
   idxint p, j, n, *Ap, *Ai ;
   double *Ax ;
-  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+  n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
   
@@ -109,17 +109,17 @@ static inline void accumByScaledATrans(const Data *d, const double *x, const dou
 }
 
 // y = A*x
-static inline void multByA(const Data *d, const double *x, double *y){
+static inline void multByA(const Work *w, const double *x, double *y){
   // assumes memory storage exists for y
   
   /* y = A*x */
-  idxint p, j, n, *Ap, *Ai ;
+  idxint p, j, n, m, *Ap, *Ai ;
   double *Ax ;
-  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+  n = w->n ; m = w->m; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
   
-  memset(y,0,d->m*sizeof(double));
+  memset(y,0,m*sizeof(double));
   
   for (j = 0 ; j < n ; j++)
   {
@@ -132,13 +132,13 @@ static inline void multByA(const Data *d, const double *x, double *y){
 }
 
 // y = A'*x
-static inline void multByATrans(const Data *d, const double *x, double *y){
+static inline void multByATrans(const Work *w, const double *x, double *y){
   // assumes memory storage exists for y
   
   /* y = A'*x */
   idxint p, j, n, *Ap, *Ai ;
   double *Ax ;
-  n = d->n ; Ap = d->Ap ; Ai = d->Ai ; Ax = d->Ax ;
+  n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
   
@@ -154,56 +154,56 @@ static inline void multByATrans(const Data *d, const double *x, double *y){
 }
 
 // y += A*x
-static inline void accumByA(const Data *d, const double *x, double *y) {
-  accumByScaledA(d,x,1.0,y);
+static inline void accumByA(const Work *w, const double *x, double *y) {
+  accumByScaledA(w,x,1.0,y);
 }
 
 // y += A'*x
-static inline void accumByATrans(const Data *d, const double *x, double *y) {
-  accumByScaledATrans(d,x,1.0,y);
+static inline void accumByATrans(const Work *w, const double *x, double *y) {
+  accumByScaledATrans(w,x,1.0,y);
 }
 
 // y -= A*x
-static inline void decumByA(const Data *d, const double *x, double *y) {
-  accumByScaledA(d,x,-1.0,y);
+static inline void decumByA(const Work *w, const double *x, double *y) {
+  accumByScaledA(w,x,-1.0,y);
 }
 
 // y -= A'*x
-static inline void decumByATrans(const Data *d, const double *x, double *y) {
-  accumByScaledATrans(d,x,-1.0,y);
+static inline void decumByATrans(const Work *w, const double *x, double *y) {
+  accumByScaledATrans(w,x,-1.0,y);
 }
 
 // norm(A*x + s - b, 'inf')/normA
-static inline double calcPriResid(const Data *d, Work *w) {
+static inline double calcPriResid(Work *w) {
   idxint i = 0;
-  for(i = 0; i < d->m; ++i) {
+  for(i = 0; i < w->m; ++i) {
     // using stilde as temp vector
-    w->stilde[i] = w->sigma*w->s[i] - d->b[i];
+    w->stilde[i] = w->sigma*w->s[i] - w->b[i];
   }
-  accumByScaledA(d, w->x, w->sigma, w->stilde);
+  accumByScaledA(w, w->x, w->sigma, w->stilde);
   
   // equiv to -(A*x + s - b) when alpha = 1
   //addScaledArray(w->stilde, w->s, d->m, -1); 
 
-  return calcNormInf(w->stilde, d->m); // TODO: normalize by "normA"
+  return calcNormInf(w->stilde, w->m); // TODO: normalize by "normA"
 }
 
 // norm(A*y + c, 'inf')/normB
-static inline double calcDualResid(const Data *d, Work *w) {
+static inline double calcDualResid(Work *w) {
   // assumes stilde allocates max(d->m,d->n) memory
-  memcpy(w->stilde, d->c, (d->n)*sizeof(double));
-  accumByScaledATrans(d, w->y, w->rho, w->stilde);
-  return calcNormInf(w->stilde, d->n); // TODO: normalize by "normB"
+  memcpy(w->stilde, w->c, (w->n)*sizeof(double));
+  accumByScaledATrans(w, w->y, w->rho, w->stilde);
+  return calcNormInf(w->stilde, w->n); // TODO: normalize by "normB"
 }
 
 // c'*x
-static inline double calcPriObj(const Data *d, const Work *w) {
-  return w->sigma*innerProd(d->c, w->x, d->n);
+static inline double calcPriObj(const Work *w) {
+  return w->sigma*innerProd(w->c, w->x, w->n);
 }
 
 // -b'*y
-static inline double calcDualObj(const Data *d, const Work *w) {
-  return -w->rho*innerProd(d->b, w->y, d->m);
+static inline double calcDualObj(const Work *w) {
+  return -w->rho*innerProd(w->b, w->y, w->m);
 }
 
 

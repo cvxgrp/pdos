@@ -4,22 +4,18 @@
 
 // TODO: when normalizing, make a copy
 
-/* WARNING: this code uses numpy array types
- *
- * WARNING: this code also does not check that the data for the matrix A is
- * actually column compressed storage for a sparse matrix. if it's not, the
- * code will just crash inelegantly. support for cvxopt matrix or scipy sparse
- * is planned, but not likely to be implemented soon.
+/* this code uses cvxopt array types
  */
 
 
-static inline void freeDataAndConeOnly(Data *d, Cone *k) {
+static inline void freeDataAndConeOnly(Data **d, Cone **k) {
   // this function is useful since the Data and Cone "structs" do not own the
   // memory for the arrays; numpy does.
-  if(d) free(d);
-  if(k->q) free(k->q);
-  if(k) free(k);
-  d = NULL; k = NULL;
+  if((*d)->p) free((*d)->p); 
+  if(*d) free(*d);
+  if((*k)->q) free((*k)->q);
+  if(*k) free(*k);
+  *d = NULL; *k = NULL;
 }
 
 // TODO: use PyObject * to keep track of whether or not two objects are equivalent (for warm-starting)
@@ -30,7 +26,7 @@ static Sol *solution = NULL;
 
 static void cleanup()
 {
-  free_sol(solution);
+  freeSol(&solution);
 }
 
 static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
@@ -76,17 +72,18 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
      
   Data *d = calloc(1,sizeof(Data)); // sets everything to 0
   Cone *k = calloc(1,sizeof(Cone)); // sets everything to 0
+  d->p = malloc(sizeof(Params));
   // set default values
-  d->MAX_ITERS = 2000;
-  d->EPS_ABS = 1e-3;
-  d->ALPH = 1.0;
-  d->BETA = 0.01;
-  d->TAU = 1e-8;
-  d->SEARCH_ITERS = 10;
-  d->VERBOSE = 1;
+  d->p->MAX_ITERS = 2000;
+  d->p->EPS_ABS = 1e-3;
+  d->p->ALPHA = 1.0;
+  d->p->BETA = 0.01;
+  d->p->TAU = 1e-8;
+  d->p->SEARCH_ITERS = 10;
+  d->p->VERBOSE = 1;
 #ifdef INDIRECT
-  d->CG_MAX_ITS = 20;
-  d->CG_TOL = 1e-3;
+  d->p->CG_MAX_ITS = 20;
+  d->p->CG_TOL = 1e-3;
 #endif
   
   matrix *c, *h;
@@ -101,20 +98,20 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
         &h,
         &PyDict_Type, &dims,
         &PyDict_Type, &opts)
-    ) { freeDataAndConeOnly(d,k); return NULL; }
+    ) { freeDataAndConeOnly(&d,&k); return NULL; }
         
   /* set G */
   if ((SpMatrix_Check(G) && SP_ID(G) != DOUBLE)){
       PyErr_SetString(PyExc_TypeError, "G must be a sparse 'd' matrix");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
   }
   if ((m = SP_NROWS(G)) <= 0) {
       PyErr_SetString(PyExc_ValueError, "m must be a positive integer");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
   }
   if ((n = SP_NCOLS(G)) <= 0) {
       PyErr_SetString(PyExc_ValueError, "n must be a positive integer");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
   }
   d->Ax = SP_VALD(G);
   d->Ai = SP_ROW(G);
@@ -123,24 +120,24 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   /* set c */
   if (!Matrix_Check(c) || MAT_NCOLS(c) != 1 || MAT_ID(c) != DOUBLE) {
       PyErr_SetString(PyExc_TypeError, "c must be a dense 'd' matrix with one column");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
   }
 
   if (MAT_NROWS(c) != n){
       PyErr_SetString(PyExc_ValueError, "c has incompatible dimension with G");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
   }
   d->c = MAT_BUFD(c);
 
   /* set h */
   if (!Matrix_Check(h) || MAT_NCOLS(h) != 1 || MAT_ID(h) != DOUBLE) {
     PyErr_SetString(PyExc_TypeError, "h must be a dense 'd' matrix with one column");
-    freeDataAndConeOnly(d,k); return NULL;
+    freeDataAndConeOnly(&d,&k); return NULL;
   }
 
   if (MAT_NROWS(h) != m){
       PyErr_SetString(PyExc_ValueError, "h has incompatible dimension with G");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
   }
   d->b = MAT_BUFD(h);
   
@@ -154,7 +151,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       num_conic_variables += k->f;
     } else {
       PyErr_SetString(PyExc_TypeError, "dims['f'] ought to be a nonnegative integer");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
     }
   }
   
@@ -165,7 +162,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       num_conic_variables += k->l;
     } else {
       PyErr_SetString(PyExc_TypeError, "dims['l'] ought to be a nonnegative integer");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
     }
   }
   
@@ -181,19 +178,19 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
             num_conic_variables += k->q[i];
           } else {
             PyErr_SetString(PyExc_TypeError, "dims['q'] ought to be a list of positive integers");
-            freeDataAndConeOnly(d,k); return NULL;
+            freeDataAndConeOnly(&d,&k); return NULL;
           }
 
       }
     } else {
       PyErr_SetString(PyExc_TypeError, "dims['q'] ought to be a list");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
     }
   }
   
   if( num_conic_variables != m ){
       PyErr_SetString(PyExc_ValueError, "Number of rows of G does not match dims.f+dims.l+sum(dims.q)");
-      freeDataAndConeOnly(d,k); return NULL;
+      freeDataAndConeOnly(&d,&k); return NULL;
   }
   
   if(opts) {
@@ -201,53 +198,53 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     /* MAX_ITERS */
     dictObj = PyDict_GetItemString(opts, "MAX_ITERS");
     if(dictObj) {
-      if(PyInt_Check(dictObj) && ((d->MAX_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
+      if(PyInt_Check(dictObj) && ((d->p->MAX_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
         // do nothing
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['MAX_ITERS'] ought to be a nonnegative integer");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
     
     /* SEARCH_ITERS */
     dictObj = PyDict_GetItemString(opts, "SEARCH_ITERS");
     if(dictObj) {
-      if(PyInt_Check(dictObj) && ((d->SEARCH_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
+      if(PyInt_Check(dictObj) && ((d->p->SEARCH_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
         // do nothing
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['SEARCH_ITERS'] ought to be a nonnegative integer");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
     /* VERBOSE */
     dictObj = PyDict_GetItemString(opts, "VERBOSE");
     if(dictObj) {
       if(PyBool_Check(dictObj)) {
-        d->VERBOSE = (idxint) PyInt_AsLong(dictObj);
+        d->p->VERBOSE = (idxint) PyInt_AsLong(dictObj);
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['VERBOSE'] ought to be a boolean");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
     /* NORMALIZE */
     dictObj = PyDict_GetItemString(opts, "NORMALIZE");
     if(dictObj) {
       if(PyBool_Check(dictObj)) {
-        d->NORMALIZE = (idxint) PyInt_AsLong(dictObj);
+        d->p->NORMALIZE = (idxint) PyInt_AsLong(dictObj);
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['NORMALIZE'] ought to be a boolean");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
     
     /* EPS_ABS */
     dictObj = PyDict_GetItemString(opts, "EPS_ABS");
     if(dictObj) {
-      if(PyFloat_Check(dictObj) && ((d->EPS_ABS = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
+      if(PyFloat_Check(dictObj) && ((d->p->EPS_ABS = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
         // do nothing
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['EPS_ABS'] ought to be a positive floating point value");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
     
@@ -255,14 +252,14 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     dictObj = PyDict_GetItemString(opts, "ALPHA");
     if(dictObj) {
       if(PyFloat_Check(dictObj)) {
-        d->ALPH = (double) PyFloat_AsDouble(dictObj);
-        if(d->ALPH >= 2.0 || d->ALPH <= 0.0) {
+        d->p->ALPHA = (double) PyFloat_AsDouble(dictObj);
+        if(d->p->ALPHA >= 2.0 || d->p->ALPHA <= 0.0) {
           PyErr_SetString(PyExc_TypeError, "opts['ALPHA'] ought to be a floating point value between 0 and 2 (noninclusive)");
-          freeDataAndConeOnly(d,k); return NULL;
+          freeDataAndConeOnly(&d,&k); return NULL;
         }
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['ALPHA'] ought to be a floating point value");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
     
@@ -270,25 +267,25 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     dictObj = PyDict_GetItemString(opts, "BETA");
     if(dictObj) {
       if(PyFloat_Check(dictObj)) {
-        d->BETA = (double) PyFloat_AsDouble(dictObj);
-        if(d->BETA > 1.0 || d->BETA < 0.0) {
+        d->p->BETA = (double) PyFloat_AsDouble(dictObj);
+        if(d->p->BETA > 1.0 || d->p->BETA < 0.0) {
           PyErr_SetString(PyExc_TypeError, "opts['BETA'] ought to be a floating point value between 0 and 1 (inclusive)");
-          freeDataAndConeOnly(d,k); return NULL;
+          freeDataAndConeOnly(&d,&k); return NULL;
         }
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['BETA'] ought to be a floating point value");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
     
     /* TAU */
     dictObj = PyDict_GetItemString(opts, "TAU");
     if(dictObj) {
-      if(PyFloat_Check(dictObj) && ((d->TAU = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
+      if(PyFloat_Check(dictObj) && ((d->p->TAU = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
         // do nothing
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['TAU'] ought to be a positive floating point value");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
 
@@ -297,22 +294,22 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     /* CG_MAX_ITS */
     dictObj = PyDict_GetItemString(opts, "CG_MAX_ITS");
     if(dictObj) {
-      if(PyInt_Check(dictObj) && ((d->CG_MAX_ITS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
+      if(PyInt_Check(dictObj) && ((d->p->CG_MAX_ITS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
         // do nothing
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['CG_MAX_ITS'] ought to be a nonnegative integer");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
 
     /* CG_TOL */
     dictObj = PyDict_GetItemString(opts, "CG_TOL");
     if(dictObj) {
-      if(PyFloat_Check(dictObj) && ((d->CG_TOL = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
+      if(PyFloat_Check(dictObj) && ((d->p->CG_TOL = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
         // do nothing
       } else {
         PyErr_SetString(PyExc_TypeError, "opts['CG_TOL'] ought to be a positive floating point value");
-        freeDataAndConeOnly(d,k); return NULL;
+        freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
 #endif
@@ -339,7 +336,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   Py_DECREF(x); Py_DECREF(y); 
   
   // do some cleanup
-  freeDataAndConeOnly(d,k);
+  freeDataAndConeOnly(&d,&k);
 
   return returnDict;
 }

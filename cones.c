@@ -23,8 +23,9 @@ static inline void projSelfDualCone(double *x, const Cone * k)
     for(j = 0; j < k->q[i]-1; ++j)
     {   
       s += x[count+j+1]*x[count+j+1];
-    }   
+    }
     s = sqrt(s);
+
     alpha = (s + v1)/2.0;
 
     if(s <= v1) { /* do nothing */ }

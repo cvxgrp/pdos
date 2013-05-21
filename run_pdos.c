@@ -5,6 +5,14 @@
 #define DEMO_PATH "../data_pdos"
 #endif 
 
+#ifdef DLONG
+#define READ_INT "%li"
+#else
+#define READ_INT "%i"
+#endif
+
+#define READ_FLOAT "%lf"
+
 int main(int argc, char **argv)
 {
   tic();
@@ -12,127 +20,73 @@ int main(int argc, char **argv)
   if(open_file(argc, argv, 1, DEMO_PATH, &fp)==-1) return -1;
   Cone * k = malloc(sizeof(Cone));
   Data * d = malloc(sizeof(Data));
-  read_in_data(fp,d,k);
+  read_in_data(fp,&d,&k);
   fclose(fp);
 
   Sol * sol = pdos(d,k);
   printf("Total factorize + solve time %4f seconds\n",tocq());
-  free_data(d,k);
-  free_sol(sol);
+  freeData(&d,&k);
+  freeSol(&sol);
   return 0;
 }
 
-void read_in_data(FILE * fp,Data * d, Cone * k){
-#ifdef DLONG
+void read_in_data(FILE * fp,Data ** d, Cone ** k){
 	/* MATRIX IN DATA FILE MUST BE IN COLUMN COMPRESSED FORMAT */
-	fscanf(fp, "%li", &(d->n));
-	fscanf(fp, "%li", &(d->m));
-  fscanf(fp, "%li", &(k->f));
-  fscanf(fp, "%li", &(k->l));
-  fscanf(fp, "%li", &(k->qsize)); 
-  k->q = malloc(sizeof(idxint)*k->qsize);
-  for(idxint i = 0; i < k->qsize; i++)
+  (*d)->p = malloc(sizeof(Params));
+  
+	fscanf(fp, READ_INT, &((*d)->n));
+	fscanf(fp, READ_INT, &((*d)->m));
+  fscanf(fp, READ_INT, &((*k)->f));
+  fscanf(fp, READ_INT, &((*k)->l));
+  fscanf(fp, READ_INT, &((*k)->qsize)); 
+  (*k)->q = malloc(sizeof(idxint)*(*k)->qsize);
+  for(idxint i = 0; i < (*k)->qsize; i++)
   { 
-    fscanf(fp, "%li", &k->q[i]);
+    fscanf(fp, READ_INT, &(*k)->q[i]);
   }
 
-  d->b = malloc(sizeof(double)*d->m);
-  for(idxint i = 0; i < d->m; i++)
+  (*d)->b = malloc(sizeof(double)*(*d)->m);
+  for(idxint i = 0; i < (*d)->m; i++)
   { 
-    fscanf(fp, "%lf", &d->b[i]);
+    fscanf(fp, READ_FLOAT, &(*d)->b[i]);
   }
 
-  d->c = malloc(sizeof(double)*d->n);
-  for(idxint i = 0; i < d->n; i++)
+  (*d)->c = malloc(sizeof(double)*(*d)->n);
+  for(idxint i = 0; i < (*d)->n; i++)
   { 
-    fscanf(fp, "%lf", &d->c[i]);
+    fscanf(fp, READ_FLOAT, &(*d)->c[i]);
   }
-  fscanf(fp, "%li", &(d->MAX_ITERS));
-  fscanf(fp, "%li", &(d->CG_MAX_ITS)); 
-  fscanf(fp, "%li", &(d->SEARCH_ITERS)); 
+  fscanf(fp, READ_INT, &((*d)->p->MAX_ITERS));
+  fscanf(fp, READ_INT, &((*d)->p->CG_MAX_ITS)); 
+  fscanf(fp, READ_INT, &((*d)->p->SEARCH_ITERS)); 
 
-  fscanf(fp, "%lf", &(d->ALPH));
-  fscanf(fp, "%lf", &(d->BETA));
-  fscanf(fp, "%lf", &(d->TAU));
-  fscanf(fp, "%lf", &(d->EPS_ABS)); 
-  //fscanf(fp, "%lf", &(d->EPS_INFEAS));
-  fscanf(fp, "%lf", &(d->CG_TOL));
-  fscanf(fp, "%li", &(d->VERBOSE));
-  fscanf(fp, "%li", &(d->NORMALIZE));
+  fscanf(fp, READ_FLOAT, &((*d)->p->ALPHA));
+  fscanf(fp, READ_FLOAT, &((*d)->p->BETA));
+  fscanf(fp, READ_FLOAT, &((*d)->p->TAU));
+  fscanf(fp, READ_FLOAT, &((*d)->p->EPS_ABS)); 
+  //fscanf(fp, READ_FLOAT, &(d->EPS_INFEAS));
+  fscanf(fp, READ_FLOAT, &((*d)->p->CG_TOL));
+  fscanf(fp, READ_INT, &((*d)->p->VERBOSE));
+  fscanf(fp, READ_INT, &((*d)->p->NORMALIZE));
     
   idxint Anz;
-  fscanf(fp, "%li", &Anz);
-	d->Ai = malloc(sizeof(idxint)*Anz);
+  fscanf(fp, READ_INT, &Anz);
+	(*d)->Ai = malloc(sizeof(idxint)*Anz);
   for(idxint i = 0; i < Anz; i++)
 	{
-		fscanf(fp, "%li", &d->Ai[i]);
+		fscanf(fp, READ_INT, &(*d)->Ai[i]);
 	}
-  d->Ap = malloc(sizeof(idxint)*(d->n+1));
-	for(idxint i = 0; i < d->n+1; i++) 
+  (*d)->Ap = malloc(sizeof(idxint)*((*d)->n+1));
+	for(idxint i = 0; i < (*d)->n+1; i++) 
 	{
-		fscanf(fp, "%li", &d->Ap[i]);
+		fscanf(fp, READ_INT, &(*d)->Ap[i]);
 	}
-  d->Ax = malloc(sizeof(double)*Anz);
+  (*d)->Ax = malloc(sizeof(double)*Anz);
 	for(int i = 0; i < Anz; i++)
 	{
-		fscanf(fp, "%lf", &d->Ax[i]);
+		fscanf(fp, READ_FLOAT, &(*d)->Ax[i]);
 	}
-#else
-	/* MATRIX IN DATA FILE MUST BE IN COLUMN COMPRESSED FORMAT */
-	fscanf(fp, "%i", &(d->n));
-	fscanf(fp, "%i", &(d->m));
-  fscanf(fp, "%i", &(k->f));
-  fscanf(fp, "%i", &(k->l));
-  fscanf(fp, "%i", &(k->qsize)); 
-  k->q = malloc(sizeof(idxint)*k->qsize);
-  for(int i = 0; i < k->qsize; i++)
-  { 
-    fscanf(fp, "%i", &k->q[i]);
-  }
 
-  d->b = malloc(sizeof(double)*d->m);
-  for(int i = 0; i < d->m; i++)
-  { 
-    fscanf(fp, "%lf", &d->b[i]);
-  }
-
-  d->c = malloc(sizeof(double)*d->n);
-  for(int i = 0; i < d->n; i++)
-  { 
-    fscanf(fp, "%lf", &d->c[i]);
-  }
-  fscanf(fp, "%i", &(d->MAX_ITERS));
-  fscanf(fp, "%i", &(d->CG_MAX_ITS)); 
-  fscanf(fp, "%i", &(d->SEARCH_ITERS)); 
-
-  fscanf(fp, "%lf", &(d->ALPH));
-  fscanf(fp, "%lf", &(d->BETA));
-  fscanf(fp, "%lf", &(d->TAU));
-  // fscanf(fp, "%lf", &(d->UNDET_TOL)); 
-  fscanf(fp, "%lf", &(d->EPS_ABS)); 
-  fscanf(fp, "%lf", &(d->EPS_INFEAS));
-  fscanf(fp, "%lf", &(d->CG_TOL));
-  fscanf(fp, "%i", &(d->VERBOSE));
-  fscanf(fp, "%i", &(d->NORMALIZE));
-  
-  int Anz;
-  fscanf(fp, "%i", &Anz);
-	d->Ai = malloc(sizeof(idxint)*Anz);
-  for(int i = 0; i < Anz; i++)
-	{
-		fscanf(fp, "%i", &d->Ai[i]);
-	}
-  d->Ap = malloc(sizeof(idxint)*(d->n+1));
-	for(int i = 0; i < d->n+1; i++) 
-	{
-		fscanf(fp, "%i", &d->Ap[i]);
-	}
-  d->Ax = malloc(sizeof(double)*Anz);
-	for(int i = 0; i < Anz; i++)
-	{
-		fscanf(fp, "%lf", &d->Ax[i]);
-	}
-#endif
  
   /*	
   fscanf(fp, "%zu", &NNZ);

@@ -10,7 +10,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Three arguments are required in this order: data struct, cone struct, params struct");
   }
   Data * d = mxMalloc(sizeof(Data)); 
-  Cone * k = mxMalloc(sizeof(Cone)); 
+  Cone * k = mxMalloc(sizeof(Cone));
+  d->p = mxMalloc(sizeof(Params));
   const mxArray *data = prhs[0];
    
   const mxArray *A_mex = (mxArray *) mxGetField(data,0,"A");
@@ -41,19 +42,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   d->b = mxGetPr(b_mex);
   d->c = mxGetPr(c_mex);
   
-  d->ALPH = (double)*mxGetPr(mxGetField(params,0,"ALPHA"));
-  d->BETA = (double)*mxGetPr(mxGetField(params,0,"BETA"));
-  d->TAU = (double)*mxGetPr(mxGetField(params,0,"TAU"));
-  d->SEARCH_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"SEARCH_ITERS"));
+  d->p->ALPHA = (double)*mxGetPr(mxGetField(params,0,"ALPHA"));
+  d->p->BETA = (double)*mxGetPr(mxGetField(params,0,"BETA"));
+  d->p->TAU = (double)*mxGetPr(mxGetField(params,0,"TAU"));
+  d->p->SEARCH_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"SEARCH_ITERS"));
   //d->UNDET_TOL = (double)*mxGetPr(mxGetField(params,0,"UNDET_TOL"));
-  d->MAX_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"MAX_ITERS"));
-  d->EPS_ABS = (double)*mxGetPr(mxGetField(params,0,"EPS_ABS"));
+  d->p->MAX_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"MAX_ITERS"));
+  d->p->EPS_ABS = (double)*mxGetPr(mxGetField(params,0,"EPS_ABS"));
   //d->EPS_INFEAS = (double)*mxGetPr(mxGetField(params,0,"EPS_INFEAS"));
 
-  d->CG_MAX_ITS = (idxint)*mxGetPr(mxGetField(params,0,"CG_MAX_ITS"));
-  d->CG_TOL = (double)*mxGetPr(mxGetField(params,0,"CG_TOL"));
-  d->VERBOSE = (idxint)*mxGetPr(mxGetField(params,0,"VERBOSE"));
-  d->NORMALIZE = (idxint)*mxGetPr(mxGetField(params,0,"NORMALIZE"));
+  d->p->CG_MAX_ITS = (idxint)*mxGetPr(mxGetField(params,0,"CG_MAX_ITS"));
+  d->p->CG_TOL = (double)*mxGetPr(mxGetField(params,0,"CG_TOL"));
+  d->p->VERBOSE = (idxint)*mxGetPr(mxGetField(params,0,"VERBOSE"));
+  d->p->NORMALIZE = (idxint)*mxGetPr(mxGetField(params,0,"NORMALIZE"));
 
   k->f = (idxint)*mxGetPr(mxGetField(cone,0,"f"));
   k->l = (idxint)*mxGetPr(mxGetField(cone,0,"l"));
@@ -87,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   plhs[2] = mxCreateString(sol->status);
   
-  mxFree(d); mxFree(k->q); mxFree(k);
+  mxFree(d->p); mxFree(d); mxFree(k->q); mxFree(k);
   
   //free(d->Ai);free(d->Ap);free(d);free(k->q);free(k);
   return; 

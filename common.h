@@ -33,19 +33,30 @@
 
 static inline Work *commonWorkInit(const Data *d) {
   Work * w = PDOS_malloc(sizeof(Work));
+  // copy dimensions
+  w->m = d->m; w->n = d->n;
+  // copy parameters (pointer)
+  w->params = d->p;
   // ensure that x, stilde are contiguous in memory
   w->x = PDOS_calloc(d->n + MAX(d->m,d->n),sizeof(double));
   w->stilde = w->x + d->n;
   w->s = PDOS_calloc(d->m,sizeof(double));
   w->y = PDOS_calloc(d->m,sizeof(double));  
 
-  if(d->NORMALIZE) {
+  if(d->p->NORMALIZE) {
     idxint i,j,k = 0;
     idxint Anz = d->Ap[d->n];
+    
+    w->Ax = PDOS_calloc(Anz, sizeof(double));
+    w->Ai = d->Ai;
+    w->Ap = d->Ap;
+    w->b = PDOS_calloc(d->m, sizeof(double));
+    w->c = PDOS_calloc(d->n, sizeof(double));
+    
     double *rowsum = PDOS_calloc(d->m, sizeof(double));
     double *colsum = PDOS_calloc(d->n, sizeof(double));
     // scale A,b,c
-    double ds, ps, normA = 0.0,normB = 0.0;
+    double ds, ps, normA = 0.0, normB = 0.0;
     
     for(i = 0; i < d->n; ++i) { // cols
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
@@ -71,18 +82,24 @@ static inline Work *commonWorkInit(const Data *d) {
     ps = pow((double)d->m/normB, (double)(d->m)/((double)(d->m + d->n)));
     
     for(i = 0; i < Anz; ++i) {
-      d->Ax[i] *= ds*ps;
+      w->Ax[i] = d->Ax[i]*ds*ps;
     }
     for(i = 0; i < d->n; ++i) {
-      d->c[i] *= ps;
+      w->c[i] = d->c[i]*ps;
     }
     for(i = 0; i < d->m; ++i) {
-      d->b[i] *= ds;
+      w->b[i] = d->b[i]*ds;
     }
     w->dual_scale = ds;
     w->primal_scale = ps;
   
   } else {
+    w->Ax = d->Ax;
+    w->Ai = d->Ai;
+    w->Ap = d->Ap;
+    w->b = d->b;
+    w->c = d->c;
+    
     w->dual_scale = 1.0;
     w->primal_scale = 1.0;
   }

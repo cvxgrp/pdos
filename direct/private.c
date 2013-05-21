@@ -5,39 +5,39 @@
 void choleskyInit(const cs * A, idxint P[], double **info);
 void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs ** L, double **D);
 void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[]);
-void factorize(const Data * d,Work * w);
+void factorize(Work * w);
 
 void freePriv(Work * w){
   cs_spfree(w->p->L);PDOS_free(w->p->P);PDOS_free(w->p->D);
   PDOS_free(w->p);
 }
 
-static inline void prepArgument(const Data *d, Work *w) {
+static inline void prepArgument(Work *w) {
   // memcpy(w->z_half,w->z,w->l*sizeof(double));
   // addScaledArray(w->z_half,w->lam,w->l,-1);
   
   // w->x = (-(x-c), b - (s+y))  
   idxint i;  
-  for (i = 0; i < d->n; i++) { 
+  for (i = 0; i < w->n; i++) { 
     // set x = -(x - c)
-    w->x[i] = d->c[i]/w->rho - w->x[i];
+    w->x[i] = w->c[i]/w->rho - w->x[i];
   }
-  for (i = 0; i < d->m; i++) { 
+  for (i = 0; i < w->m; i++) { 
     // set s_half = (b - (s + y))
-    w->stilde[i] = d->b[i]/w->sigma - (w->s[i] + w->y[i]);
+    w->stilde[i] = w->b[i]/w->sigma - (w->s[i] + w->y[i]);
   }
 }
 
-void projectLinSys(const Data *d, Work * w){
+void projectLinSys(Work * w){
   // this preps the argument (-(x-c), b - (s+y)) for LDL solve 
   // (puts it in w->x)  
-  prepArgument(d,w);  
+  prepArgument(w);  
   choleskySolve(w->x, w->x, w->p->L, w->p->D, w->p->P);  
   // stilde = b/sigma - A*x
-  setAsScaledArray(w->stilde,d->b,(1/w->sigma),d->m); 
+  setAsScaledArray(w->stilde,w->b,(1/w->sigma),w->m); 
   // memcpy(w->stilde, d->b, d->m*sizeof(double));
   // stilde -= A*x
-  decumByA(d, w->x, w->stilde);  
+  decumByA(w, w->x, w->stilde);  
 }
 
 Work * initWork(const Data* d){ 
@@ -50,12 +50,12 @@ Work * initWork(const Data* d){
   w->p->L->m = n_plus_m;
   w->p->L->n = n_plus_m;
   w->p->L->nz = -1; 
-  factorize(d,w);
+  factorize(w);
   
   return w;
 }
 
-cs * formKKT(const Data * d, Work * w){
+cs * formKKT(Work * w){
 	/* ONLY UPPER TRIANGULAR PART IS STUFFED
 	 * forms column compressed KKT matrix
 	 * assumes column compressed form A matrix
@@ -64,29 +64,29 @@ cs * formKKT(const Data * d, Work * w){
 	 */
 	idxint j, k, kk;
 	/* -I at top left */
-  const idxint Anz = d->Ap[d->n];
-	const idxint Knzmax = d->m + d->n + Anz;
-	cs * K = cs_spalloc(d->m + d->n, d->m + d->n, Knzmax, 1, 1);
+  const idxint Anz = w->Ap[w->n];
+	const idxint Knzmax = w->m + w->n + Anz;
+	cs * K = cs_spalloc(w->m + w->n, w->m + w->n, Knzmax, 1, 1);
   kk = 0;
-	for (k = 0; k < d->n; k++){
+	for (k = 0; k < w->n; k++){
 		K->i[kk] = k;
 		K->p[kk] = k;
 		K->x[kk] = -1;
     kk++;
 	}
 	/* A^T at top right : CCS: */
-	for (j = 0; j < d->n; j++) {                 
-		for (k = d->Ap[j]; k < d->Ap[j+1]; k++) { 
-			K->p[kk] = d->Ai[k] + d->n;
+	for (j = 0; j < w->n; j++) {                 
+		for (k = w->Ap[j]; k < w->Ap[j+1]; k++) { 
+			K->p[kk] = w->Ai[k] + w->n;
 			K->i[kk] = j;
-			K->x[kk] = d->Ax[k];
+			K->x[kk] = w->Ax[k];
       kk++;
 		}   
 	}
 	/* I at bottom right */
-	for (k = 0; k < d->m; k++){
-		K->i[kk] = k + d->n;
-		K->p[kk] = k + d->n;
+	for (k = 0; k < w->m; k++){
+		K->i[kk] = k + w->n;
+		K->p[kk] = k + w->n;
 		K->x[kk] = 1;
     kk++;
 	}
@@ -98,23 +98,23 @@ cs * formKKT(const Data * d, Work * w){
 }
 
 
-void factorize(const Data * d,Work * w){
+void factorize(Work * w){
   tic();
-  cs * K = formKKT(d,w);
-  if(d->VERBOSE) PDOS_printf("KKT matrix factorization info:\n");
+  cs * K = formKKT(w);
+  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization info:\n");
   double *info;
   choleskyInit(K, w->p->P, &info);
-  if(d->VERBOSE) {
+  if(w->params->VERBOSE) {
 #ifdef DLONG
     amd_l_info(info);
 #else
     amd_info(info);
 #endif
   }
-  idxint * Pinv = cs_pinv(w->p->P, d->m+d->n);
+  idxint * Pinv = cs_pinv(w->p->P, w->m+w->n);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
-  if(d->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq());
+  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq());
   cs_spfree(C);cs_spfree(K);PDOS_free(Pinv);PDOS_free(info);
 }
 

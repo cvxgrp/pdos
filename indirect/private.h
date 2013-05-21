@@ -16,7 +16,7 @@ struct PRIVATE_DATA{
 Work * initWork(const Data* d);
 //void formQ(Data * d, Work * w);
 void freePriv(Work * w);
-void projectLinSys(const Data * d,Work * w);
+void projectLinSys(Work * w);
 //void cgCustom(cs *Q,double * b,double * x,idxint max_its,double tol);
 //void multByQ(const cs *Q, const double *x, double *y);
 

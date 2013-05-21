@@ -9,10 +9,10 @@ TARGETS = demo_direct demo_indirect
 	#lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
 default: lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
 
-pdos.o 		: pdos.h idxintDef.h common.h linAlg.h
+pdos.o 		: pdos.h numericDef.h common.h linAlg.h
 util.o		: util.h pdos.h
-cones.o		: cones.h idxintDef.h
-cs.o			: cs.h idxintDef.h
+cones.o		: cones.h numericDef.h
+cs.o			: cs.h numericDef.h
 
 direct/private.o				: direct/private.h common.h
 direct/ldl.o						: direct/ldl.h
