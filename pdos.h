@@ -66,12 +66,11 @@ typedef struct WORK {
 
 
 #include <string.h>    
-#include <sys/time.h>
 #include <math.h>
+#include "common.h"
 #include "cones.h"
 #include "util.h"
 #include "linAlg.h"
-#include "common.h"
 
 // these are actually library "api"'s
 Sol * pdos(const Data * d, const Cone * k);

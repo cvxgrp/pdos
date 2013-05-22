@@ -1,9 +1,15 @@
 from distutils.core import setup, Extension
 from glob import glob
+from platform import system
 
-direct = Extension('pdos_direct', libraries = ['m'],
+lib = ['m']
+if system() == 'Linux':
+    lib += ['rt']
+
+direct = Extension('pdos_direct', libraries = lib,
                     include_dirs = ['../'],
                     define_macros = [
+#                        ('_GNU_SOURCE', None),
                         ('DLONG', None), 
                         ('LDL_LONG', None),
                         ('PYTHON', None)],
@@ -13,9 +19,10 @@ direct = Extension('pdos_direct', libraries = ['m'],
                     ] + glob('../direct/*.c'),
                     extra_compile_args=['-std=c99'])
 
-indirect = Extension('pdos_indirect', libraries = ['m'],
+indirect = Extension('pdos_indirect', libraries = lib,
                     include_dirs = ['../'],
                     define_macros = [
+ #                       ('_GNU_SOURCE', None),
                         ('DLONG', None), 
                         ('LDL_LONG', None), 
                         ('INDIRECT', None), 
