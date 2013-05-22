@@ -1,113 +1,77 @@
 #include "util.h"
 
-// timing code courtesty of A. Domahidi
-#if (defined WIN32 || defined _WIN64)
-
-/* Use Windows QueryPerformanceCounter for timing */
-#include <Windows.h>
-
-typedef struct timer{
-	LARGE_INTEGER tic;
-	LARGE_INTEGER toc;
-	LARGE_INTEGER freq;
-} timer;
-
-
-#elif (defined __APPLE__)
-
-#include <mach/mach_time.h>
-
-/* Use MAC OSX  mach_time for timing */
-typedef struct timer{
-	uint64_t tic;
-	uint64_t toc;
-	mach_timebase_info_data_t tinfo;
-} timer;
-
-#else
-
-/* Use POSIX clocl_gettime() for timing on non-Windows machines */
-#include <time.h>
-
-typedef struct timer{
-	struct timespec tic;
-	struct timespec toc;
-} timer;
-
-#endif
-
-static timer PDOS_timer;
-
 #if (defined WIN32 || _WIN64)
 
-void tic()
+void tic(timer* t)
 {
-	QueryPerformanceFrequency(&PDOS_timer.freq);
-	QueryPerformanceCounter(&PDOS_timer.tic);
+	QueryPerformanceFrequency(&t->freq);
+	QueryPerformanceCounter(&t->tic);
 }
 
-double tocq()
+double tocq(timer* t)
 {
-	QueryPerformanceCounter(&PDOS_timer.toc);
-	return ((PDOS_timer.toc.QuadPart - PDOS_timer.tic.QuadPart) / (double)PDOS_timer.freq.QuadPart);
+	QueryPerformanceCounter(&t->toc);
+	return ((t->toc.QuadPart - t->tic.QuadPart) / (double)t->freq.QuadPart);
 }
+
 
 #elif (defined __APPLE__)
 
-void tic()
+void tic(timer* t)
 {
     /* read current clock cycles */
-    PDOS_timer.tic = mach_absolute_time();
+    t->tic = mach_absolute_time();
 }
 
-double tocq()
+double tocq(timer* t)
 {
 
     uint64_t duration; /* elapsed time in clock cycles*/
     
-    PDOS_timer.toc = mach_absolute_time();
-    duration = PDOS_timer.toc - PDOS_timer.tic;
+    t->toc = mach_absolute_time();
+    duration = t->toc - t->tic;
     
     /*conversion from clock cycles to nanoseconds*/
-    mach_timebase_info(&(PDOS_timer.tinfo));
-    duration *= PDOS_timer.tinfo.numer;
-    duration /= PDOS_timer.tinfo.denom;
+    mach_timebase_info(&(t->tinfo));
+    duration *= t->tinfo.numer;
+    duration /= t->tinfo.denom;
 
     return (double)duration / 1000000000;
 }
 
 
+
 #else
 
 /* read current time */
-void tic()
+void tic(timer* t)
 {
-	clock_gettime(CLOCK_MONOTONIC, &PDOS_timer.tic);
+	clock_gettime(CLOCK_MONOTONIC, &t->tic);
 }
 
 
 /* return time passed since last call to tic on this timer */
-double tocq()
+double tocq(timer* t)
 {
 	struct timespec temp;
     
-	clock_gettime(CLOCK_MONOTONIC, &PDOS_timer.toc);	
+	clock_gettime(CLOCK_MONOTONIC, &t->toc);	
     
-	if ((PDOS_timer.toc.tv_nsec - PDOS_timer.tic.tv_nsec)<0) {
-		temp.tv_sec = PDOS_timer.toc.tv_sec - PDOS_timer.tic.tv_sec-1;
-		temp.tv_nsec = 1000000000+PDOS_timer.toc.tv_nsec - PDOS_timer.tic.tv_nsec;
+	if ((t->toc.tv_nsec - t->tic.tv_nsec)<0) {
+		temp.tv_sec = t->toc.tv_sec - t->tic.tv_sec-1;
+		temp.tv_nsec = 1000000000+t->toc.tv_nsec - t->tic.tv_nsec;
 	} else {
-		temp.tv_sec = PDOS_timer.toc.tv_sec - PDOS_timer.tic.tv_sec;
-		temp.tv_nsec = PDOS_timer.toc.tv_nsec - PDOS_timer.tic.tv_nsec;
+		temp.tv_sec = t->toc.tv_sec - t->tic.tv_sec;
+		temp.tv_nsec = t->toc.tv_nsec - t->tic.tv_nsec;
 	}
 	return (double)temp.tv_sec + (double)temp.tv_nsec / 1000000000;
 }
 
 #endif
 
-double toc()
+double toc(timer *t)
 {
-  double val = tocq();
+  double val = tocq(t);
   PDOS_printf("time: %8.4f seconds.\n", val);
   return val;
 }

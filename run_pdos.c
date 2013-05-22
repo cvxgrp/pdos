@@ -13,18 +13,23 @@
 
 #define READ_FLOAT "%lf"
 
+static timer PDOS_timer;
+
 int main(int argc, char **argv)
 {
-  tic();
+  tic(&PDOS_timer);
   FILE * fp;
   if(open_file(argc, argv, 1, DEMO_PATH, &fp)==-1) return -1;
   Cone * k = malloc(sizeof(Cone));
   Data * d = malloc(sizeof(Data));
   read_in_data(fp,&d,&k);
   fclose(fp);
+  printf("File IO %4f seconds\n",tocq(&PDOS_timer));
+  
 
+  tic(&PDOS_timer);
   Sol * sol = pdos(d,k);
-  printf("Total factorize + solve time %4f seconds\n",tocq());
+  printf("Total factorize + solve time %4f seconds\n",tocq(&PDOS_timer));
   freeData(&d,&k);
   freeSol(&sol);
   return 0;

@@ -48,6 +48,8 @@ static inline void freeWork(Work ** w);
 
 Sol * pdos(const Data * d, const Cone * k)
 {
+  static timer PDOS_timer;
+    
   if(d == NULL || k == NULL) {
     return NULL;
   }
@@ -58,7 +60,7 @@ Sol * pdos(const Data * d, const Cone * k)
 	Work * w = initWork(d, k);
   if(p->VERBOSE) {
     printHeader();
-    tic();
+    tic(&PDOS_timer);
   }
   
   for (i=0; i < p->MAX_ITERS; ++i){    
@@ -98,7 +100,7 @@ Sol * pdos(const Data * d, const Cone * k)
   
 	if(p->VERBOSE) {
     printSummary(w,i,&residuals);
-    PDOS_printf("Total solve time is %4.8fs\n", tocq());
+    PDOS_printf("Total solve time is %4.8fs\n", tocq(&PDOS_timer));
 	  //printSol(d,sol);
 	}
 

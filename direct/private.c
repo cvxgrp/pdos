@@ -99,7 +99,8 @@ cs * formKKT(Work * w){
 
 
 void factorize(Work * w){
-  tic();
+  static timer KKT_timer;
+  tic(&KKT_timer);
   cs * K = formKKT(w);
   if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization info:\n");
   double *info;
@@ -114,7 +115,7 @@ void factorize(Work * w){
   idxint * Pinv = cs_pinv(w->p->P, w->m+w->n);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
-  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq());
+  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq(&KKT_timer));
   cs_spfree(C);cs_spfree(K);PDOS_free(Pinv);PDOS_free(info);
 }
 
