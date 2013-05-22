@@ -7,8 +7,8 @@
 #include "pdos.h"
 
 void tic(void); 
-float toc(void); 
-float tocq(void); 
+double toc(void); 
+double tocq(void); 
 void printConeData(const Cone * k);
 void printData(const Data * d);
 void printAll(const Data * d, const Work * w);
