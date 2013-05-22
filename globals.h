@@ -1,6 +1,9 @@
 #ifndef GLOBALS_H_GUARD                                                              
 #define GLOBALS_H_GUARD
 
+// uncomment the following line to print KKT factorization information
+// #define PRINTKKT
+
 // redefine printfs and memory allocators as needed
 #ifdef MATLAB_MEX_FILE
   #include "mex.h"

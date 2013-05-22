@@ -12,10 +12,8 @@
 
 /* struct containing algorithm parameters */
 typedef struct PROBLEM_PARAMS {
-  // SEARCH_ITERS is number of iterations to do rho, sigma search
-  idxint MAX_ITERS, CG_MAX_ITS, SEARCH_ITERS;
-  // BETA is smoothing parameter, TAU is lower bound on line search
-  double EPS_ABS, ALPHA, CG_TOL, BETA, TAU;
+  idxint MAX_ITERS, CG_MAX_ITS;
+  double EPS_ABS, EPS_REL, ALPHA, CG_TOL;
   idxint VERBOSE, NORMALIZE;  // boolean
 } Params;
 

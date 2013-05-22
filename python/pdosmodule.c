@@ -2,8 +2,6 @@
 #include "pdos.h"
 #include "cvxopt.h"
 
-// TODO: when normalizing, make a copy
-
 /* this code uses cvxopt array types
  */
 
@@ -76,14 +74,12 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   // set default values
   d->p->MAX_ITERS = 2000;
   d->p->EPS_ABS = 1e-3;
+  d->p->EPS_REL = 1e-2;
   d->p->ALPHA = 1.0;
-  d->p->BETA = 0.01;
-  d->p->TAU = 1e-8;
-  d->p->SEARCH_ITERS = 10;
   d->p->VERBOSE = 1;
 #ifdef INDIRECT
   d->p->CG_MAX_ITS = 20;
-  d->p->CG_TOL = 1e-3;
+  d->p->CG_TOL = 1e-4;
 #endif
   
   matrix *c, *h;
@@ -206,16 +202,6 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       }
     }
     
-    /* SEARCH_ITERS */
-    dictObj = PyDict_GetItemString(opts, "SEARCH_ITERS");
-    if(dictObj) {
-      if(PyInt_Check(dictObj) && ((d->p->SEARCH_ITERS = (idxint) PyInt_AsLong(dictObj)) >= 0)) {
-        // do nothing
-      } else {
-        PyErr_SetString(PyExc_TypeError, "opts['SEARCH_ITERS'] ought to be a nonnegative integer");
-        freeDataAndConeOnly(&d,&k); return NULL;
-      }
-    }
     /* VERBOSE */
     dictObj = PyDict_GetItemString(opts, "VERBOSE");
     if(dictObj) {
@@ -248,6 +234,17 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       }
     }
     
+    /* EPS_REL */
+    dictObj = PyDict_GetItemString(opts, "EPS_REL");
+    if(dictObj) {
+      if(PyFloat_Check(dictObj) && ((d->p->EPS_REL = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
+        // do nothing
+      } else {
+        PyErr_SetString(PyExc_TypeError, "opts['EPS_REL'] ought to be a positive floating point value");
+        freeDataAndConeOnly(&d,&k); return NULL;
+      }
+    }
+    
     /* ALPHA */
     dictObj = PyDict_GetItemString(opts, "ALPHA");
     if(dictObj) {
@@ -262,33 +259,6 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
         freeDataAndConeOnly(&d,&k); return NULL;
       }
     }
-    
-    /* BETA */
-    dictObj = PyDict_GetItemString(opts, "BETA");
-    if(dictObj) {
-      if(PyFloat_Check(dictObj)) {
-        d->p->BETA = (double) PyFloat_AsDouble(dictObj);
-        if(d->p->BETA > 1.0 || d->p->BETA < 0.0) {
-          PyErr_SetString(PyExc_TypeError, "opts['BETA'] ought to be a floating point value between 0 and 1 (inclusive)");
-          freeDataAndConeOnly(&d,&k); return NULL;
-        }
-      } else {
-        PyErr_SetString(PyExc_TypeError, "opts['BETA'] ought to be a floating point value");
-        freeDataAndConeOnly(&d,&k); return NULL;
-      }
-    }
-    
-    /* TAU */
-    dictObj = PyDict_GetItemString(opts, "TAU");
-    if(dictObj) {
-      if(PyFloat_Check(dictObj) && ((d->p->TAU = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
-        // do nothing
-      } else {
-        PyErr_SetString(PyExc_TypeError, "opts['TAU'] ought to be a positive floating point value");
-        freeDataAndConeOnly(&d,&k); return NULL;
-      }
-    }
-
 
 #ifdef INDIRECT
     /* CG_MAX_ITS */

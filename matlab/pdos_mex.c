@@ -2,6 +2,16 @@
 #include "matrix.h"
 #include "pdos.h"
 
+double getParameterField(const mxArray *params, const char *field, Data *d, Cone *k)
+{
+  const mxArray *tmp = mxGetField(params, 0, field);
+  if(tmp == NULL) {
+    mxFree(d); mxFree(k);
+    mexErrMsgIdAndTxt("PDOS:getParams", "Params struct must contain a(n) `%s` entry.", field);
+  }
+  return *mxGetPr(tmp);
+}
+
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   /* matlab usage: pdos(data,cone,params); */
@@ -43,29 +53,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   d->b = mxGetPr(b_mex);
   d->c = mxGetPr(c_mex);
   
-  d->p->ALPHA = (double)*mxGetPr(mxGetField(params,0,"ALPHA"));
-  d->p->BETA = (double)*mxGetPr(mxGetField(params,0,"BETA"));
-  d->p->TAU = (double)*mxGetPr(mxGetField(params,0,"TAU"));
-  d->p->SEARCH_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"SEARCH_ITERS"));
-  //d->UNDET_TOL = (double)*mxGetPr(mxGetField(params,0,"UNDET_TOL"));
-  d->p->MAX_ITERS = (idxint)*mxGetPr(mxGetField(params,0,"MAX_ITERS"));
-  d->p->EPS_ABS = (double)*mxGetPr(mxGetField(params,0,"EPS_ABS"));
-  //d->EPS_INFEAS = (double)*mxGetPr(mxGetField(params,0,"EPS_INFEAS"));
-
-  d->p->CG_MAX_ITS = (idxint)*mxGetPr(mxGetField(params,0,"CG_MAX_ITS"));
-  d->p->CG_TOL = (double)*mxGetPr(mxGetField(params,0,"CG_TOL"));
-  d->p->VERBOSE = (idxint)*mxGetPr(mxGetField(params,0,"VERBOSE"));
-  d->p->NORMALIZE = (idxint)*mxGetPr(mxGetField(params,0,"NORMALIZE"));
-
-  k->f = (idxint)*mxGetPr(mxGetField(cone,0,"f"));
-  k->l = (idxint)*mxGetPr(mxGetField(cone,0,"l"));
+  d->p->ALPHA = getParameterField(params, "ALPHA", d, k);
+  d->p->MAX_ITERS = (idxint)getParameterField(params, "MAX_ITERS", d, k);
   
-  double * q_mex = mxGetPr(mxGetField(cone,0,"q"));
+  d->p->EPS_ABS = getParameterField(params, "EPS_ABS", d, k);
+  d->p->EPS_REL = getParameterField(params, "EPS_REL", d, k);
+
+  d->p->CG_MAX_ITS = (idxint)getParameterField(params, "CG_MAX_ITS", d, k);
+  d->p->CG_TOL = getParameterField(params, "CG_TOL", d, k);
+  d->p->VERBOSE = (idxint)getParameterField(params, "VERBOSE", d, k);
+  d->p->NORMALIZE = (idxint)getParameterField(params, "NORMALIZE", d, k);
+
+
+  const mxArray *f_mex = (mxArray *) mxGetField(cone,0,"f"); 
+  if(f_mex == NULL) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Cone struct must contain a `f` entry.");
+  }
+  k->f = (idxint)*mxGetPr(f_mex);
+  const mxArray *l_mex = (mxArray *) mxGetField(cone,0,"l"); 
+  if(l_mex == NULL) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Cone struct must contain a `l` entry.");
+  }
+  k->l = (idxint)*mxGetPr(l_mex);
+  
+  const mxArray *q_mex = (mxArray *) mxGetField(cone,0,"q"); 
+  if(q_mex == NULL) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Cone struct must contain a `q` entry.");
+  }
+  
+  double * q_mex_vals = mxGetPr(q_mex);
   k->qsize = *(mxGetDimensions(mxGetField(cone,0,"q")));
   idxint i;
   k->q = mxMalloc(sizeof(idxint)*k->qsize);
   for ( i=0; i < k->qsize; i++ ){
-    k->q[i] = (idxint)q_mex[i]; 
+    k->q[i] = (idxint)q_mex_vals[i]; 
   }
   
   int Anz = mxGetNzmax(A_mex);

@@ -63,13 +63,10 @@ void read_in_data(FILE * fp,Data ** d, Cone ** k){
   }
   fscanf(fp, READ_INT, &((*d)->p->MAX_ITERS));
   fscanf(fp, READ_INT, &((*d)->p->CG_MAX_ITS)); 
-  fscanf(fp, READ_INT, &((*d)->p->SEARCH_ITERS)); 
 
   fscanf(fp, READ_FLOAT, &((*d)->p->ALPHA));
-  fscanf(fp, READ_FLOAT, &((*d)->p->BETA));
-  fscanf(fp, READ_FLOAT, &((*d)->p->TAU));
   fscanf(fp, READ_FLOAT, &((*d)->p->EPS_ABS)); 
-  //fscanf(fp, READ_FLOAT, &(d->EPS_INFEAS));
+  fscanf(fp, READ_FLOAT, &((*d)->p->EPS_REL));
   fscanf(fp, READ_FLOAT, &((*d)->p->CG_TOL));
   fscanf(fp, READ_INT, &((*d)->p->VERBOSE));
   fscanf(fp, READ_INT, &((*d)->p->NORMALIZE));

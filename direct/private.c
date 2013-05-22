@@ -101,10 +101,14 @@ cs * formKKT(Work * w){
 void factorize(Work * w){
   static timer KKT_timer;
   tic(&KKT_timer);
+
   cs * K = formKKT(w);
+#ifdef PRINTKKT
   if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization info:\n");
+#endif
   double *info;
   choleskyInit(K, w->p->P, &info);
+#ifdef PRINTKKT
   if(w->params->VERBOSE) {
 #ifdef DLONG
     amd_l_info(info);
@@ -112,6 +116,7 @@ void factorize(Work * w){
     amd_info(info);
 #endif
   }
+#endif
   idxint * Pinv = cs_pinv(w->p->P, w->m+w->n);
   cs * C = cs_symperm(K, Pinv, 1); 
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);

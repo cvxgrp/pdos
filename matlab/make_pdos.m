@@ -21,7 +21,7 @@ else
     arr = '';
 end
 
-if ( isunix ) 
+if ( isunix && ~ismac ) 
     link = '-lm -lrt';
 else
     link = '-lm';

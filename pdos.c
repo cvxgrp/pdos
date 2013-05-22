@@ -5,13 +5,13 @@ static const double ZERO = 1e-8;
 
 // constants and data structures
 static const char* HEADER[] = {
-  "Iter", 
-  "||Ax+s-b||",
-  " ||A'y+c||",
-  "    c'x   ",
-  "   -b'y   ",
-  "    eta   ",
-  "  lambda  "
+  " iter", 
+  " ||Ax+s-b|| ",
+  "  ||A'y+c|| ",
+  "     c'x    ",
+  "    -b'y    ",
+  "    eta     ",
+  "  eps gap   "
 };
 // static const idxint LENS[] = {
 //   4, 14, 11, 18, 11, 8, 9, 3
@@ -28,12 +28,13 @@ struct resid {
   double p_obj;
   double d_obj;
   double eta;
+  double eps_gap;
 };
 
 // forward declare inline declarations
 static inline void relax(Work * w);
 static inline void updateDualVars(Work * w);
-static inline void adaptRhoAndSigma(Work * w, const idxint i);
+//static inline void adaptRhoAndSigma(Work * w, const idxint i);
 
 static inline void prepZVariable(Work *w);
 static inline void projectCones(Work * w,const Cone * k);
@@ -41,7 +42,7 @@ static inline void sety(const Work * w, Sol * sol);
 static inline void sets(const Work * w, Sol * sol);
 static inline void setx(const Work * w, Sol * sol);
 static inline void getSolution(const Work * w, Sol * sol, idxint solver_state);
-static inline void printSummary(const Work * w,idxint i, struct resid *r);
+static inline void printSummary(idxint i, struct resid *r);
 static inline void printHeader();
 static inline void printSol(const Sol * sol);
 static inline void freeWork(Work ** w);
@@ -57,25 +58,36 @@ Sol * pdos(const Data * d, const Cone * k)
   struct resid residuals = { -1, -1, -1, -1, -1 };
 
   Params *p = d->p;
-	Work * w = initWork(d, k);
+  const double eps_pri = p->EPS_ABS + p->EPS_REL*calcNormInf(d->b, d->m);
+  const double eps_dual = p->EPS_ABS + p->EPS_REL*calcNormInf(d->c, d->n);
+  
   if(p->VERBOSE) {
+    PDOS_printf("\nPDOS - A Primal-Dual Operator Splitting for Cone Programming.\n");
+    PDOS_printf("       (c) E. Chu, B. O'Donoghue, N. Parikh, S. Boyd, Stanford University, 2012-13.\n\n");
+  }
+  
+	Work * w = initWork(d, k);
+  
+  if(p->VERBOSE) {
+    PDOS_printf("Stopping tolerances:\n");
+    PDOS_printf("  eps_pri : %5.3e\n  eps_dual: %5.3e\n", eps_pri, eps_dual);
+    PDOS_printf("lambda: %5.3e\n\n", w->lambda);
+    
     printHeader();
     tic(&PDOS_timer);
   }
   
-  for (i=0; i < p->MAX_ITERS; ++i){    
+  for (i=0; i < p->MAX_ITERS; ++i){  
+    // Pi_P  
 		projectLinSys(w);
 		
     /* overrelaxation */
     relax(w);
     
+    // Pi_K
     projectCones(w,k);
+    // y += (1.0/lambda)*(s - stilde)
     updateDualVars(w);
-    
-    /* line search */
-    // if(p->NORMALIZE) {
-    //   adaptRhoAndSigma(w,i);
-    // }
     
     residuals.p_res = calcPriResid(w);
     residuals.d_res = calcDualResid(w); 
@@ -83,23 +95,21 @@ Sol * pdos(const Data * d, const Cone * k)
     residuals.d_obj = calcDualObj(w);
     residuals.eta = fabs(residuals.p_obj - residuals.d_obj);
     
+    residuals.eps_gap = p->EPS_ABS + (p->EPS_REL/2.0)*(fabs(residuals.p_obj) + fabs(residuals.d_obj));
     
-    // err = calcPriResid(d,w);
-    // EPS_PRI = sqrt(w->l)*d->EPS_ABS + 
-    //       d->EPS_REL*fmax(calcNorm(w->uv,w->l),calcNorm(w->uv_t,w->l));
-    if (residuals.p_res < p->EPS_ABS && 
-        residuals.d_res < p->EPS_ABS && 
-        residuals.eta < p->EPS_ABS) {
+    if (residuals.p_res < eps_pri && 
+        residuals.d_res < eps_dual && 
+        residuals.eta < residuals.eps_gap) {
       STATE = SOLVED;
       break;
     }
-		if (p->VERBOSE && i % 10 == 0) printSummary(w,i, &residuals);
+		if (p->VERBOSE && i % 10 == 0) printSummary(i, &residuals);
 	}
 	Sol * sol = PDOS_malloc(sizeof(Sol));
 	getSolution(w,sol,STATE);
   
 	if(p->VERBOSE) {
-    printSummary(w,i,&residuals);
+    printSummary(i,&residuals);
     PDOS_printf("Total solve time is %4.8fs\n", tocq(&PDOS_timer));
 	  //printSol(d,sol);
 	}
@@ -257,6 +267,7 @@ static inline void relax(Work * w){
 	}  
 }
 
+/*
 static inline void adaptRhoAndSigma(Work *w, const idxint i) {
   const idxint MAX_ITERS = w->params->MAX_ITERS;
   const double TAU = w->params->TAU;
@@ -297,9 +308,9 @@ static inline void adaptRhoAndSigma(Work *w, const idxint i) {
       return;
     }
   }
-}
+}*/
 
-static inline void printSummary(const Work * w,idxint i, struct resid *r){
+static inline void printSummary(idxint i, struct resid *r){
 	// PDOS_printf("Iteration %i, primal residual %4f, primal tolerance %4f\n",i,err,EPS_PRI);
 #ifdef DLONG
   PDOS_printf("%*li | ", (int)strlen(HEADER[0]), i);
@@ -311,7 +322,7 @@ static inline void printSummary(const Work * w,idxint i, struct resid *r){
   PDOS_printf("%*.3e   ", (int)strlen(HEADER[3]), r->p_obj);
   PDOS_printf("%*.3e   ", (int)strlen(HEADER[4]), r->d_obj);
   PDOS_printf("%*.3e   ", (int)strlen(HEADER[5]), r->eta);
-  PDOS_printf("%*.3e\n", (int)strlen(HEADER[6]), w->lambda);  
+  PDOS_printf("%*.3e   \n", (int)strlen(HEADER[6]), r->eps_gap);  
 }
 
 static inline void printHeader() {
