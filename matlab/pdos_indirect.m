@@ -1,4 +1,4 @@
-function [x, y, status] = pdos_indirect(A, b, c, cone, params)			    
+function [x, s, y, status] = pdos_indirect(A, b, c, cone, params)			    
 %PDOS_INDIRECT Operator-splitting method for solving cone problems (indirect)
 %
 % This implements a cone solver. It solves:

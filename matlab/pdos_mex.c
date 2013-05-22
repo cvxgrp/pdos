@@ -2,7 +2,7 @@
 #include "matrix.h"
 #include "pdos.h"
 
-double getParameterField(const mxArray *params, const char *field, Data *d, Cone *k)
+static double getParameterField(const mxArray *params, const char *field, Data *d, Cone *k)
 {
   const mxArray *tmp = mxGetField(params, 0, field);
   if(tmp == NULL) {
@@ -19,6 +19,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs != 3){
     mexErrMsgTxt("Three arguments are required in this order: data struct, cone struct, params struct");
   }
+  
   Data * d = mxMalloc(sizeof(Data)); 
   Cone * k = mxMalloc(sizeof(Cone));
   d->p = mxMalloc(sizeof(Params));
@@ -87,6 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double * q_mex_vals = mxGetPr(q_mex);
   k->qsize = *(mxGetDimensions(mxGetField(cone,0,"q")));
   idxint i;
+  
   k->q = mxMalloc(sizeof(idxint)*k->qsize);
   for ( i=0; i < k->qsize; i++ ){
     k->q[i] = (idxint)q_mex_vals[i]; 
@@ -102,20 +104,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   Sol *sol = pdos(d,k);
   
-  plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
+  plhs[0] = mxCreateDoubleMatrix(d->n, 1, mxREAL);
   mxSetPr(plhs[0], sol->x);
-  mxSetM(plhs[0], d->n); 
-  mxSetN(plhs[0], 1); 
   
-  plhs[1] = mxCreateDoubleMatrix(0, 0, mxREAL);
+  plhs[1] = mxCreateDoubleMatrix(d->m, 1, mxREAL);
   mxSetPr(plhs[1], sol->s);
-  mxSetM(plhs[1], d->m); 
-  mxSetN(plhs[1], 1); 
 
-  plhs[2] = mxCreateDoubleMatrix(0, 0, mxREAL);
-  mxSetPr(plhs[1], sol->y);
-  mxSetM(plhs[1], d->m); 
-  mxSetN(plhs[1], 1); 
+  plhs[2] = mxCreateDoubleMatrix(d->m, 1, mxREAL);
+  mxSetPr(plhs[2], sol->y);
 
   plhs[3] = mxCreateString(sol->status);
   
@@ -123,6 +119,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   //free(d->Ai);free(d->Ap);free(d);free(k->q);free(k);
   
-  return; 
+  //return; 
 }
 

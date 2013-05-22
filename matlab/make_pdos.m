@@ -23,11 +23,13 @@ end
 
 if ( isunix && ~ismac ) 
     link = '-lm -lrt';
+    defines = '-D_GNU_SOURCE -DMATLAB_MEX_FILE -DLDL_LONG -DDLONG';
 else
     link = '-lm';
+    defines = '-DMATLAB_MEX_FILE -DLDL_LONG -DDLONG';
 end
 
-cmd = sprintf ('mex -v -O %s CFLAGS="-std=c99 -O3 -D_GNU_SOURCE -DMATLAB_MEX_FILE -DLDL_LONG -DDLONG %s" -I../', arr, d) ;
+cmd = sprintf ('mex -v -O %s CFLAGS="\\$CFLAGS -std=c99 -O3 %s %s" -I../', arr, defines, d) ;
 amd_files = {'amd_order', 'amd_dump', 'amd_postorder', 'amd_post_tree', ...
     'amd_aat', 'amd_2', 'amd_1', 'amd_defaults', 'amd_control', ...
     'amd_info', 'amd_valid', 'amd_global', 'amd_preprocess' } ;
@@ -40,5 +42,5 @@ cmd = sprintf ('%s ../direct/ldl.c %s ../direct/private.c %s -o pdos_direct', cm
 eval(cmd) ;
 
 % compile indirect
-cmd = sprintf('mex -v -O %s CFLAGS="-std=c99 -O3 -D_GNU_SOURCE -DMATLAB_MEX_FILE -DLDL_LONG -DDLONG %s" %s ../indirect/private.c -I../ -o pdos_indirect %s', arr, d, common_pdos, link);
+cmd = sprintf('mex -v -O %s CFLAGS="\\$CFLAGS -std=c99 -O3 %s %s" %s ../indirect/private.c -I../ -o pdos_indirect %s', arr, defines, d, common_pdos, link);
 eval(cmd);
