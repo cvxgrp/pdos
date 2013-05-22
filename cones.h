@@ -2,7 +2,7 @@
 #define CONES_H_GUARD
 
 #include <string.h>
-#include "numericDef.h"
+#include "globals.h"
 
 //#include "pdos.h"
 

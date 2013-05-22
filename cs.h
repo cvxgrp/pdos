@@ -1,7 +1,7 @@
 #ifndef CS_H_GUARD
 #define CS_H_GUARD
 
-#include "numericDef.h"
+#include "globals.h"
 
 //#include <string.h>
 //#include <stdlib.h>

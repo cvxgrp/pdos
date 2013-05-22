@@ -8,7 +8,7 @@
 
 // use the same type for index representation as in SuiteSparse
 // coincidentally, Python uses the same type (long)
-#include "numericDef.h"
+#include "globals.h"
 
 /* struct containing algorithm parameters */
 typedef struct PROBLEM_PARAMS {
@@ -67,10 +67,10 @@ typedef struct WORK {
 
 #include <string.h>    
 #include <math.h>
-#include "common.h"
 #include "cones.h"
 #include "util.h"
 #include "linAlg.h"
+#include "common.h"
 
 // these are actually library "api"'s
 Sol * pdos(const Data * d, const Cone * k);

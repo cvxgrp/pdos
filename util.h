@@ -1,7 +1,6 @@
 #ifndef UTIL_H_GUARD
 #define UTIL_H_GUARD
 
-#include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "pdos.h"
