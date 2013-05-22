@@ -1,9 +1,9 @@
 #include "private.h"
 #include "common.h"
 
-Work * initWork(const Data* d){
+Work * initWork(const Data *d, const Cone *k){
   
-  Work * w = commonWorkInit(d);
+  Work * w = commonWorkInit(d,k);
   w->p = PDOS_malloc(sizeof(Priv));
   
   w->p->Ax = PDOS_calloc(d->m, sizeof(double));
@@ -30,7 +30,7 @@ static inline void prepArgument(Work *w) {
   // }
   for (i = 0; i < w->m; i++) { 
     // set s_half = (s + y - b/sigma)
-    w->stilde[i] = w->s[i] + w->y[i] - w->b[i]/w->sigma;
+    w->stilde[i] = w->s[i] + w->lambda*w->y[i] - w->b[i];
   }
 }
 
@@ -54,9 +54,9 @@ static inline void cgCustom(Work *w){
   
   /* q = -c - A'*(A*x - b + v) */
   memcpy(Ax, s, (w->m)*sizeof(double));
-  setAsScaledArray(q,w->c,-(1.0/w->rho),w->n);  // q = -c/rho
+  setAsScaledArray(q,w->c,-w->lambda,w->n);  // q = -c*lambda
   accumByA(w,x,Ax);   // Ax = A*x + (v - b/sigma)
-  decumByATrans(w,Ax,q); // q = -c/rho - A'*(A*x - b/sigma + v)
+  decumByATrans(w,Ax,q); // q = -c*lambda - A'*(A*x - b + v)
   
   // p = q
 	memcpy(p,q,n*sizeof(double));
@@ -108,8 +108,8 @@ void projectLinSys(Work * w){
   // solve (I+A'*A)*x = u + A'*(b - v)
   cgCustom(w);
   
-  // stilde = b/sigma - A*x
-  setAsScaledArray(w->stilde,w->b,(1.0/w->sigma),w->m); 
+  // stilde = b - A*x
+  memcpy(w->stilde, w->b, w->m*sizeof(double));
   
   // stilde -= A*x
   decumByA(w, w->x, w->stilde);

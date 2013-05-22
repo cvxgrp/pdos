@@ -32,7 +32,7 @@ typedef struct PROBLEM_DATA {
 
 typedef struct SOL_VARS {
   idxint n, m; /* solution dimensions */
-  double *x, *y;
+  double *x, *s, *y;
   char status[16];
 } Sol;
 
@@ -56,10 +56,9 @@ typedef struct WORK {
   // of that vector
   double *x, *s, *y, *stilde;
   
-  //double *D, *E;  // A = D*A*E
-  double primal_scale, dual_scale;
+  double *D, *E;  // A = D*A*E
   
-  double rho, sigma;
+  double lambda;
   
   Params *params;
   Priv * p;
@@ -80,7 +79,7 @@ void freeData(Data **d, Cone **k);
 void freeSol(Sol **sol);
 
 // these are pulled in from private.o
-Work * initWork(const Data * d);
+Work * initWork(const Data * d, const Cone * k);
 void projectLinSys(Work * w);
 void freePriv(Work *w);
 

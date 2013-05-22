@@ -13,7 +13,7 @@ struct PRIVATE_DATA{
   double *Ax; // temp memory for holding result of A*x
 };
 
-Work * initWork(const Data* d);
+Work * initWork(const Data* d, const Cone *k);
 //void formQ(Data * d, Work * w);
 void freePriv(Work * w);
 void projectLinSys(Work * w);

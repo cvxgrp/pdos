@@ -6,18 +6,17 @@ static const double ZERO = 1e-8;
 // constants and data structures
 static const char* HEADER[] = {
   "Iter", 
-  "ni(Ax+s-b)",
-  " ni(A'y+c)",
-  "    c'u   ",
-  "   -b'w   ",
+  "||Ax+s-b||",
+  " ||A'y+c||",
+  "    c'x   ",
+  "   -b'y   ",
   "    eta   ",
-  "    rho   ",
-  "   sigma  "
+  "  lambda  "
 };
 // static const idxint LENS[] = {
 //   4, 14, 11, 18, 11, 8, 9, 3
 // }
-static const idxint HEADER_LEN = 8;
+static const idxint HEADER_LEN = 7;
 
 // problem state
 enum { SOLVED = 0, INDETERMINATE };
@@ -39,6 +38,7 @@ static inline void adaptRhoAndSigma(Work * w, const idxint i);
 static inline void prepZVariable(Work *w);
 static inline void projectCones(Work * w,const Cone * k);
 static inline void sety(const Work * w, Sol * sol);
+static inline void sets(const Work * w, Sol * sol);
 static inline void setx(const Work * w, Sol * sol);
 static inline void getSolution(const Work * w, Sol * sol, idxint solver_state);
 static inline void printSummary(const Work * w,idxint i, struct resid *r);
@@ -55,7 +55,7 @@ Sol * pdos(const Data * d, const Cone * k)
   struct resid residuals = { -1, -1, -1, -1, -1 };
 
   Params *p = d->p;
-	Work * w = initWork(d);
+	Work * w = initWork(d, k);
   if(p->VERBOSE) {
     printHeader();
     tic();
@@ -71,9 +71,9 @@ Sol * pdos(const Data * d, const Cone * k)
     updateDualVars(w);
     
     /* line search */
-    if(p->NORMALIZE) {
-      adaptRhoAndSigma(w,i);
-    }
+    // if(p->NORMALIZE) {
+    //   adaptRhoAndSigma(w,i);
+    // }
     
     residuals.p_res = calcPriResid(w);
     residuals.d_res = calcDualResid(w); 
@@ -85,8 +85,8 @@ Sol * pdos(const Data * d, const Cone * k)
     // err = calcPriResid(d,w);
     // EPS_PRI = sqrt(w->l)*d->EPS_ABS + 
     //       d->EPS_REL*fmax(calcNorm(w->uv,w->l),calcNorm(w->uv_t,w->l));
-    if (residuals.p_res < p->EPS_ABS*w->dual_scale && 
-        residuals.d_res < p->EPS_ABS*w->primal_scale && 
+    if (residuals.p_res < p->EPS_ABS && 
+        residuals.d_res < p->EPS_ABS && 
         residuals.eta < p->EPS_ABS) {
       STATE = SOLVED;
       break;
@@ -127,6 +127,7 @@ void freeSol(Sol **sol){
   if(*sol) {
     if((*sol)->x) PDOS_free((*sol)->x);
     if((*sol)->y) PDOS_free((*sol)->y);
+    if((*sol)->s) PDOS_free((*sol)->s);
     // done automatically
     // if(sol->status) PDOS_free(sol->status);
     PDOS_free(*sol);
@@ -146,6 +147,8 @@ static inline void freeWork(Work **w){
       if((*w)->b) PDOS_free((*w)->b);
       if((*w)->c) PDOS_free((*w)->c);
     }
+    if((*w)->D) PDOS_free((*w)->D);
+    if((*w)->E) PDOS_free((*w)->E);
     PDOS_free(*w);
   }
   *w = NULL;
@@ -172,16 +175,25 @@ static inline void printSol(const Sol * sol){
 #endif
 		}
 	}
+	if (sol->s != NULL){
+		for ( i=0;i<sol->m; ++i){
+#ifdef DLONG
+			PDOS_printf("s[%li] = %4f\n",i, sol->s[i]);
+#else
+			PDOS_printf("s[%i] = %4f\n",i, sol->s[i]);
+#endif
+		}
+	}
 }
 
 static inline void updateDualVars(Work * w){
   idxint i;
-  for(i = 0; i < w->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i]); }  
+  for(i = 0; i < w->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i])/w->lambda; }  
 }
 
 static inline void prepZVariable(Work *w){
   idxint i;
-  for(i = 0; i < w->m; ++i) { w->s[i] = w->stilde[i] - w->y[i]; }
+  for(i = 0; i < w->m; ++i) { w->s[i] = w->stilde[i] - w->lambda*w->y[i]; }
 }
 
 static inline void projectCones(Work * w,const Cone * k){
@@ -198,6 +210,7 @@ static inline void projectCones(Work * w,const Cone * k){
 static inline void getSolution(const Work * w, Sol * sol, idxint solver_state){
   setx(w,sol);
   sety(w,sol);
+  sets(w,sol);
   switch(solver_state) {
     case SOLVED: memcpy(sol->status,"Solved", 7*sizeof(char)); break;
     default: memcpy(sol->status, "Indeterminate", 15*sizeof(char));
@@ -210,7 +223,7 @@ static inline void sety(const Work * w, Sol * sol){
 	//memcpy(sol->y, w->z + w->yi, d->m*sizeof(double));
   idxint i;
   for(i = 0; i < w->m; ++i) {
-    sol->y[i] = w->rho * w->dual_scale * w->y[i];
+    sol->y[i] = w->D[i] * w->y[i];
   }
 }
 
@@ -220,7 +233,17 @@ static inline void setx(const Work * w, Sol * sol){
 	//memcpy(sol->x, w->z, d->n*sizeof(double));
   idxint i;
   for(i = 0; i < w->n; ++i) {
-    sol->x[i] = w->sigma * w->primal_scale * w->x[i];
+    sol->x[i] = w->E[i] * w->x[i];
+  }
+}
+
+static inline void sets(const Work * w, Sol * sol){
+  sol->m = w->m;
+	sol->s = PDOS_malloc(sizeof(double)*w->m);
+	//memcpy(sol->y, w->z + w->yi, d->m*sizeof(double));
+  idxint i;
+  for(i = 0; i < w->m; ++i) {
+    sol->s[i] = w->s[i] / w->D[i];
   }
 }
 
@@ -264,11 +287,9 @@ static inline void adaptRhoAndSigma(Work *w, const idxint i) {
     
     if(theta > TAU && gamma > TAU && theta < 1.0/TAU && gamma < 1.0/TAU) {
       if (i <= SEARCH_ITERS) {
-        w->rho = theta;
-        w->sigma = gamma;
+        w->lambda = 1.0/theta;
       } else {
-        w->rho = pow(w->rho, 1.0-BETA)*pow(theta, BETA);
-        w->sigma = pow(w->sigma,1.0-BETA)*pow(gamma, BETA);
+        w->lambda = pow(w->lambda, 1.0-BETA)*pow(1.0/theta, BETA);
       }
     } else {
       return;
@@ -283,14 +304,12 @@ static inline void printSummary(const Work * w,idxint i, struct resid *r){
 #else
   PDOS_printf("%*i | ", (int)strlen(HEADER[0]), i);
 #endif
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[1]), r->p_res);
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[2]), r->d_res);
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[3]), r->p_obj);
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[4]), r->d_obj);
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[5]), r->eta);
-  PDOS_printf("%*.4f   ", (int)strlen(HEADER[5]), w->rho);
-  PDOS_printf("%*.4f\n", (int)strlen(HEADER[5]), w->sigma);
-  
+  PDOS_printf("%*.3e   ", (int)strlen(HEADER[1]), r->p_res);
+  PDOS_printf("%*.3e   ", (int)strlen(HEADER[2]), r->d_res);
+  PDOS_printf("%*.3e   ", (int)strlen(HEADER[3]), r->p_obj);
+  PDOS_printf("%*.3e   ", (int)strlen(HEADER[4]), r->d_obj);
+  PDOS_printf("%*.3e   ", (int)strlen(HEADER[5]), r->eta);
+  PDOS_printf("%*.3e\n", (int)strlen(HEADER[6]), w->lambda);  
 }
 
 static inline void printHeader() {

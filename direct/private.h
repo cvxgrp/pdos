@@ -17,7 +17,7 @@ struct PRIVATE_DATA {
 //void choleskyInit(cs * A, idxint P[], double **info);
 //void choleskyFactor(cs * A, idxint P[], idxint Pinv[], cs ** L, double **D);
 //void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[]);
-Work * initWork(const Data * d);
+Work * initWork(const Data * d, const Cone *k);
 void freePriv(Work * w);
 void projectLinSys(Work * w);
 //cs * formKKT(Data * d, Work * w);

@@ -20,11 +20,11 @@ static inline void prepArgument(Work *w) {
   idxint i;  
   for (i = 0; i < w->n; i++) { 
     // set x = -(x - c)
-    w->x[i] = w->c[i]/w->rho - w->x[i];
+    w->x[i] = w->lambda*w->c[i] - w->x[i];
   }
   for (i = 0; i < w->m; i++) { 
     // set s_half = (b - (s + y))
-    w->stilde[i] = w->b[i]/w->sigma - (w->s[i] + w->y[i]);
+    w->stilde[i] = w->b[i] - (w->s[i] + w->lambda*w->y[i]);
   }
 }
 
@@ -33,16 +33,16 @@ void projectLinSys(Work * w){
   // (puts it in w->x)  
   prepArgument(w);  
   choleskySolve(w->x, w->x, w->p->L, w->p->D, w->p->P);  
-  // stilde = b/sigma - A*x
-  setAsScaledArray(w->stilde,w->b,(1/w->sigma),w->m); 
-  // memcpy(w->stilde, d->b, d->m*sizeof(double));
+  // stilde = b - A*x
+  
+  memcpy(w->stilde, w->b, w->m*sizeof(double));
   // stilde -= A*x
   decumByA(w, w->x, w->stilde);  
 }
 
-Work * initWork(const Data* d){ 
+Work * initWork(const Data* d, const Cone *k){ 
   idxint n_plus_m = d->n + d->m;
-  Work *w = commonWorkInit(d);
+  Work *w = commonWorkInit(d,k);
   w->p = PDOS_malloc(sizeof(Priv));
 
   w->p->P = PDOS_malloc(sizeof(idxint)*n_plus_m);

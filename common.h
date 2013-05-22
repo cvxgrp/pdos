@@ -31,7 +31,9 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
-static inline Work *commonWorkInit(const Data *d) {
+#define EQUILIBRATE_ITERS 3
+
+static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   Work * w = PDOS_malloc(sizeof(Work));
   // copy dimensions
   w->m = d->m; w->n = d->n;
@@ -44,7 +46,8 @@ static inline Work *commonWorkInit(const Data *d) {
   w->y = PDOS_calloc(d->m,sizeof(double));  
 
   if(d->p->NORMALIZE) {
-    idxint i,j,k = 0;
+    idxint i,j = 0;
+    idxint iters = 0;
     idxint Anz = d->Ap[d->n];
     
     w->Ax = PDOS_calloc(Anz, sizeof(double));
@@ -53,46 +56,93 @@ static inline Work *commonWorkInit(const Data *d) {
     w->b = PDOS_calloc(d->m, sizeof(double));
     w->c = PDOS_calloc(d->n, sizeof(double));
     
-    double *rowsum = PDOS_calloc(d->m, sizeof(double));
-    double *colsum = PDOS_calloc(d->n, sizeof(double));
-    // scale A,b,c
-    double ds, ps, normA = 0.0, normB = 0.0;
+    w->D = PDOS_malloc(d->m*sizeof(double));
+    double *pi = PDOS_calloc(d->m, sizeof(double));
+    for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
+
+    w->E = PDOS_malloc(d->n*sizeof(double));
+    double *delta = PDOS_calloc(d->n, sizeof(double));
+    for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
     
-    for(i = 0; i < d->n; ++i) { // cols
-      for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
-        rowsum[d->Ai[k]] += fabs(d->Ax[k]);
-        colsum[i] += fabs(d->Ax[k]);            
-        k++;
+    // set w->Ax = d->Ax
+    for(i = 0; i < Anz; ++i) w->Ax[i] = d->Ax[i];
+    
+    
+    for( iters = 0; iters < EQUILIBRATE_ITERS; ++iters) {
+      // // As = As*diag(delta)
+      // for(i = 0; i < d->n; ++i) { // cols
+      //   for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
+      //     d->Ax[j] *= delta[i];
+      //   }
+      //   delta[i] = 0.0; // in preparation for computing max
+      // }
+      // 
+      
+      // compute max across rows
+      for(i = 0; i < d->n; ++i) { // cols
+        for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
+          pi[d->Ai[j]] = MAX(pi[d->Ai[j]], fabs(d->Ax[j])*w->E[i]);            
+        }
+      }
+      
+      // now collapse cones together
+      idxint ind = k->f + k->l;
+      for(i = 0; i < k->qsize; ++i) {
+        // find the maximum in this cone
+        double cone_max = 0.0;
+        for(j = ind; j < ind + k->q[i]; ++j) {
+          cone_max = MAX(pi[j], cone_max);
+        }
+        // set all in this cone to the maximum
+        for(j = ind; j < ind + k->q[i]; ++j) {
+          pi[j] = cone_max;
+        }
+        ind += k->q[i];
+      }
+      
+      for(i = 0; i < d->m; ++i) {
+        w->D[i] = sqrt(w->D[i] / pi[i]);
+        pi[i] = 0.0;  // set to 0 to compute max
+      }
+      
+      // now compute max down through columns
+      for(i = 0; i < d->n; ++i) { // cols
+        for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
+          delta[i] = MAX(delta[i], fabs(d->Ax[j])*w->D[d->Ai[j]]);            
+        }
+      }
+      
+      for(i = 0; i < d->n; ++i) {
+        w->E[i] = sqrt(w->E[i] / delta[i]);
+        delta[i] = 0.0;
       }
     }
     
-    // normA is max column sum (norm(A,1))
+    
+    PDOS_free(pi); PDOS_free(delta);
+    
+    // now compute max down through columns
+    for(i = 0; i < d->n; ++i) { // cols
+      for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
+        w->Ax[j] *= w->D[d->Ai[j]]*w->E[i];            
+      }
+    }
+
     for(i = 0; i < d->n; ++i) {
-      normA = (normA > colsum[i]) ? normA : colsum[i];
-    }
-    
-    // normB is max row sum (norm(A,'inf'))
-    for(i = 0; i < d->m; ++i) {
-      normB = (normB > rowsum[i]) ? normB : rowsum[i];
-    }
-    
-    PDOS_free(rowsum); PDOS_free(colsum);
-    
-    ds = pow((double)d->n/normA, (double)(d->n)/((double)(d->m + d->n)));
-    ps = pow((double)d->m/normB, (double)(d->m)/((double)(d->m + d->n)));
-    
-    for(i = 0; i < Anz; ++i) {
-      w->Ax[i] = d->Ax[i]*ds*ps;
-    }
-    for(i = 0; i < d->n; ++i) {
-      w->c[i] = d->c[i]*ps;
+      w->c[i] = d->c[i]*w->E[i];
     }
     for(i = 0; i < d->m; ++i) {
-      w->b[i] = d->b[i]*ds;
+      w->b[i] = d->b[i]*w->D[i];
     }
-    w->dual_scale = ds;
-    w->primal_scale = ps;
-  
+    
+    // display first col of A
+    // for(i = 0; i < d->n; ++i) { // cols
+    //   for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
+    //     printf("%f ", d->Ax[j]);         
+    //   }
+    //   printf("\n");
+    // }
+
   } else {
     w->Ax = d->Ax;
     w->Ai = d->Ai;
@@ -100,13 +150,17 @@ static inline Work *commonWorkInit(const Data *d) {
     w->b = d->b;
     w->c = d->c;
     
-    w->dual_scale = 1.0;
-    w->primal_scale = 1.0;
+    idxint i;
+    
+    w->D = PDOS_malloc(d->m*sizeof(double));
+    for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
+
+    w->E = PDOS_malloc(d->n*sizeof(double));
+    for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
   
-  w->rho = 1;
-  w->sigma = 1;
-  
+  w->lambda = sqrt( w->n*(1.0 + calcNormSq(w->b,w->m)) / (w->m*(1.0 + calcNormSq(w->c,w->n))) );
+    
   return w;
 }
 

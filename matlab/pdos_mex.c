@@ -30,10 +30,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   const mxArray *c_mex = (mxArray *) mxGetField(data,0,"c"); 
   if(c_mex == NULL) {
-    free(d); free(k);
+    mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `c` entry.");
   }
 
+  
   const mxArray *cone = prhs[1];
   const mxArray *params = prhs[2];
   d->n = *(mxGetDimensions(c_mex));
@@ -74,23 +75,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   /* printConeData(d,k); */
   /* printData(d); */
+  
   Sol *sol = pdos(d,k);
-
+  
   plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
   mxSetPr(plhs[0], sol->x);
   mxSetM(plhs[0], d->n); 
   mxSetN(plhs[0], 1); 
-
+  
   plhs[1] = mxCreateDoubleMatrix(0, 0, mxREAL);
+  mxSetPr(plhs[1], sol->s);
+  mxSetM(plhs[1], d->m); 
+  mxSetN(plhs[1], 1); 
+
+  plhs[2] = mxCreateDoubleMatrix(0, 0, mxREAL);
   mxSetPr(plhs[1], sol->y);
   mxSetM(plhs[1], d->m); 
   mxSetN(plhs[1], 1); 
 
-  plhs[2] = mxCreateString(sol->status);
+  plhs[3] = mxCreateString(sol->status);
   
   mxFree(d->p); mxFree(d); mxFree(k->q); mxFree(k);
   
   //free(d->Ai);free(d->Ap);free(d);free(k->q);free(k);
+  
   return; 
 }
 

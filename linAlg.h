@@ -178,32 +178,44 @@ static inline double calcPriResid(Work *w) {
   idxint i = 0;
   for(i = 0; i < w->m; ++i) {
     // using stilde as temp vector
-    w->stilde[i] = w->sigma*w->s[i] - w->b[i];
+    w->stilde[i] = w->s[i] - w->b[i];
   }
-  accumByScaledA(w, w->x, w->sigma, w->stilde);
+  accumByA(w, w->x, w->stilde);
+  
+  // normalize by D
+  for(i = 0; i < w->m; ++i) {
+    w->stilde[i] /= w->D[i];
+  }
   
   // equiv to -(A*x + s - b) when alpha = 1
   //addScaledArray(w->stilde, w->s, d->m, -1); 
 
-  return calcNormInf(w->stilde, w->m); // TODO: normalize by "normA"
+  return calcNormInf(w->stilde, w->m);
 }
 
 // norm(A*y + c, 'inf')/normB
 static inline double calcDualResid(Work *w) {
   // assumes stilde allocates max(d->m,d->n) memory
   memcpy(w->stilde, w->c, (w->n)*sizeof(double));
-  accumByScaledATrans(w, w->y, w->rho, w->stilde);
+  accumByATrans(w, w->y, w->stilde);
+  
+  // normalize by E
+  idxint i = 0;
+  for(i = 0; i < w->n; ++i) {
+    w->stilde[i] /= w->E[i];
+  }
+  
   return calcNormInf(w->stilde, w->n); // TODO: normalize by "normB"
 }
 
 // c'*x
 static inline double calcPriObj(const Work *w) {
-  return w->sigma*innerProd(w->c, w->x, w->n);
+  return innerProd(w->c, w->x, w->n);
 }
 
 // -b'*y
 static inline double calcDualObj(const Work *w) {
-  return -w->rho*innerProd(w->b, w->y, w->m);
+  return -innerProd(w->b, w->y, w->m);
 }
 
 
