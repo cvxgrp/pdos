@@ -1,5 +1,6 @@
 #include "util.h"
 
+
 #if (defined WIN32 || _WIN64)
 
 void tic(timer* t)

@@ -1,9 +1,9 @@
 #ifndef UTIL_H_GUARD
 #define UTIL_H_GUARD
 
+#include "globals.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "pdos.h"
 
 // timing code courtesty of A. Domahidi
 #if (defined WIN32 || defined _WIN64)
@@ -45,6 +45,9 @@ typedef struct timer{
 void tic(timer *t); 
 double toc(timer *t); 
 double tocq(timer *t); 
+
+#include "pdos.h"
+
 void printConeData(const Cone * k);
 void printData(const Data * d);
 void printAll(const Data * d, const Work * w);
