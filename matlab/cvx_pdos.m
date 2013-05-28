@@ -116,7 +116,7 @@ else
 end
 pars.NORMALIZE = 1;
 
-pars.CG_MAX_ITS = 15;
+pars.CG_MAX_ITS = 20;
 pars.CG_TOL = 1e-4;
 
 add_row = isempty( At );
@@ -128,6 +128,14 @@ if add_row,
 end
 
 data = struct('A', At, 'b', full(c), 'c', -full(b));
+
+% transpose the cone if needed, since pdos_direct assumes cone is a column
+% vector argument
+[m1,n1] = size(K.q);
+if m1 == 1,
+    K.q = K.q';
+end
+
 % coneOS solves the dual formulation of sedumi canonical form
 % IMPORTANT!!!: At appears to be A', sedumi seems not to care...
 % USE DIRECT METHOD:

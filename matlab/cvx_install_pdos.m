@@ -1,3 +1,4 @@
+cvx_clear
 make_pdos
 [ ver, isoctave, fs, ps ] = cvx_version;
 
