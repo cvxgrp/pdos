@@ -58,8 +58,8 @@ Sol * pdos(const Data * d, const Cone * k)
   struct resid residuals = { -1, -1, -1, -1, -1 };
 
   Params *p = d->p;
-  const double eps_pri = p->EPS_ABS + p->EPS_REL*calcNormInf(d->b, d->m);
-  const double eps_dual = p->EPS_ABS + p->EPS_REL*calcNormInf(d->c, d->n);
+  const double pscale = (1.0 + calcNormInf(d->b, d->m));
+  const double dscale = (1.0 + calcNormInf(d->c, d->n)); 
   
   if(p->VERBOSE) {
     PDOS_printf("\nPDOS - A Primal-Dual Operator Splitting for Cone Programming.\n");
@@ -69,8 +69,6 @@ Sol * pdos(const Data * d, const Cone * k)
 	Work * w = initWork(d, k);
   
   if(p->VERBOSE) {
-    PDOS_printf("Stopping tolerances:\n");
-    PDOS_printf("  eps_pri : %5.3e\n  eps_dual: %5.3e\n", eps_pri, eps_dual);
     PDOS_printf("lambda: %5.3e\n\n", w->lambda);
     
     printHeader();
@@ -89,17 +87,17 @@ Sol * pdos(const Data * d, const Cone * k)
     // y += (1.0/lambda)*(s - stilde)
     updateDualVars(w);
     
-    residuals.p_res = calcPriResid(w);
-    residuals.d_res = calcDualResid(w); 
+    residuals.p_res = calcPriResid(w) / pscale ;
+    residuals.d_res = calcDualResid(w) / dscale ;
     residuals.p_obj = calcPriObj(w);
     residuals.d_obj = calcDualObj(w);
-    residuals.eta = fabs(residuals.p_obj - residuals.d_obj);
+    residuals.eta = fabs(residuals.p_obj - residuals.d_obj)/(1.0 + fabs(residuals.p_obj) + fabs(residuals.d_obj));
     
-    residuals.eps_gap = p->EPS_ABS + (p->EPS_REL/2.0)*(fabs(residuals.p_obj) + fabs(residuals.d_obj));
+    residuals.eps_gap = p->EPS_ABS;
     
-    if (residuals.p_res < eps_pri && 
-        residuals.d_res < eps_dual && 
-        residuals.eta < residuals.eps_gap) {
+    if (residuals.p_res < p->EPS_ABS && 
+        residuals.d_res < p->EPS_ABS && 
+        residuals.eta < p->EPS_ABS) {
       STATE = SOLVED;
       break;
     }

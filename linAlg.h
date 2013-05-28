@@ -190,7 +190,7 @@ static inline double calcPriResid(Work *w) {
   // equiv to -(A*x + s - b) when alpha = 1
   //addScaledArray(w->stilde, w->s, d->m, -1); 
 
-  return calcNormInf(w->stilde, w->m);
+  return calcNorm(w->stilde, w->m);
 }
 
 // norm(A*y + c, 'inf')/normB
@@ -205,7 +205,7 @@ static inline double calcDualResid(Work *w) {
     w->stilde[i] /= w->E[i];
   }
   
-  return calcNormInf(w->stilde, w->n); // TODO: normalize by "normB"
+  return calcNorm(w->stilde, w->n);
 }
 
 // c'*x
