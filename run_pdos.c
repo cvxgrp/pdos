@@ -26,10 +26,10 @@ int main(int argc, char **argv)
   fclose(fp);
   printf("File IO %4f seconds\n",tocq(&PDOS_timer));
   
-
   tic(&PDOS_timer);
   Sol * sol = pdos(d,k);
   printf("Total factorize + solve time %4f seconds\n",tocq(&PDOS_timer));
+  
   freeData(&d,&k);
   freeSol(&sol);
   return 0;
@@ -66,7 +66,7 @@ void read_in_data(FILE * fp,Data ** d, Cone ** k){
 
   fscanf(fp, READ_FLOAT, &((*d)->p->ALPHA));
   fscanf(fp, READ_FLOAT, &((*d)->p->EPS_ABS)); 
-  fscanf(fp, READ_FLOAT, &((*d)->p->EPS_REL));
+  //fscanf(fp, READ_FLOAT, &((*d)->p->EPS_REL));
   fscanf(fp, READ_FLOAT, &((*d)->p->CG_TOL));
   fscanf(fp, READ_INT, &((*d)->p->VERBOSE));
   fscanf(fp, READ_INT, &((*d)->p->NORMALIZE));

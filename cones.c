@@ -11,9 +11,12 @@ static inline void projSelfDualCone(double *x, const Cone * k)
   for(i = k->f; i < k->f+k->l; ++i)
   {
     if(x[i] < 0.0) x[i] = 0.0;
+    
+    // sometimes, ternary operator is optimized by compiler
     //x[i] = (x[i] < 0.0) ? 0.0 : x[i];
   }
   count = k->l+k->f;
+  
   /* project onto SOC */
   for(i = 0; i < k->qsize; ++i)
   {
@@ -38,7 +41,9 @@ static inline void projSelfDualCone(double *x, const Cone * k)
         x[count+j+1] = alpha*(x[count+j+1])/s;
     }           
     count += k->q[i];
+    
     /* project onto OTHER cones */
+    // if you want to handle other cones, they might go here
   }
 }
 
@@ -47,6 +52,7 @@ void projCone(double *x, const Cone *k)
   /* project zeros on zero cone */
   // "s" corresponding to free variables should be set to 0
   memset(x,0,sizeof(double)*k->f);
+  // project the rest of x onto remaining cones (which are self-dual)
   projSelfDualCone(x,k);
 }
 

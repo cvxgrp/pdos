@@ -2,10 +2,11 @@
 #include "common.h"
 
 Work * initWork(const Data *d, const Cone *k){
-  
+  // private indirect method initialization
   Work * w = commonWorkInit(d,k);
   w->p = PDOS_malloc(sizeof(Priv));
   
+  // space for vectors containing A*x and for CG's p and q
   w->p->Ax = PDOS_calloc(d->m, sizeof(double));
   w->p->p = PDOS_calloc(d->n, sizeof(double));
   w->p->q = PDOS_calloc(d->n, sizeof(double));
@@ -18,23 +19,18 @@ void freePriv(Work * w){
 }
 
 static inline void prepArgument(Work *w) {
-  // memcpy(w->z_half,w->z,w->l*sizeof(double));
-  // addScaledArray(w->z_half,w->lam,w->l,-1);
-  
-  // w->x = (x, s + y - b)
-  
+  // uses the stilde memory space to store the argument, since we don't need
+  // that memory space anymore
   idxint i;  
-  // for (i = 0; i < d->n; i++) { 
-  //   // set x = (x - c)
-  //   w->x[i] -= d->c[i]/w->rho;
-  // }
   for (i = 0; i < w->m; i++) { 
-    // set s_half = (s + y - b/sigma)
+    // set stilde = s + y - b
     w->stilde[i] = w->s[i] + w->lambda*w->y[i] - w->b[i];
   }
 }
 
 static inline void cgCustom(Work *w){
+  // solve (I+A^TA) x = (x^k - lambda c + A^T*(b - s^k - lambda y^k)) 
+  // recall that s^k = b - A*x^k
   const idxint MAX_ITERS = w->params->CG_MAX_ITS;
   const double TOL = w->params->CG_TOL;
   const idxint VERBOSE = w->params->VERBOSE;
@@ -47,15 +43,15 @@ static inline void cgCustom(Work *w){
   double *q = w->p->q;
   double *Ax = w->p->Ax;
   double *x = w->x; // contains x
-  const double *s = w->stilde; // contains v - b/sigma
+  const double *s = w->stilde; // contains v - b
   
 	double alpha, beta, qsnew_sq=0;
   double tol_sq = TOL*TOL;  // XXX: could be a very small number...
   
-  /* q = -c - A'*(A*x - b + v) */
+  /* q = -lambda * c - A'*(A*x - b + v) */
   memcpy(Ax, s, (w->m)*sizeof(double));
   setAsScaledArray(q,w->c,-w->lambda,w->n);  // q = -c*lambda
-  accumByA(w,x,Ax);   // Ax = A*x + (v - b/sigma)
+  accumByA(w,x,Ax);   // Ax = A*x + (v - b)
   decumByATrans(w,Ax,q); // q = -c*lambda - A'*(A*x - b + v)
   
   // p = q
@@ -115,29 +111,3 @@ void projectLinSys(Work * w){
   decumByA(w, w->x, w->stilde);
 }     
 
-
-// void multByQ(const cs *Q, const double *x, double *y)
-// {
-//   /* y  = Q*x */
-//   /* parallelizes over rows,
-//      relies on special property that Q = -Q^T 
-//      we use this so we can parallelize across columns
-//      since Q is stored in compressed column format */
-//   idxint p, j, n, *Qp, *Qi ;
-//   double *Qx ;
-//   n = Q->n ; Qp = Q->p ; Qi = Q->i ; Qx = Q->x ;
-//   /* parallel matrix multiply */
-//   idxint c1, c2;
-//   double yj;
-// #pragma omp parallel for private(p,c1,c2,yj) 
-//   for (j = 0 ; j < n ; j++)
-//   {
-//     yj = 0.0;
-//     c1 = Qp[j]; c2 = Qp[j+1];
-//     for (p = c1 ; p < c2 ; p++)        
-//     {   
-//       yj -= Qx[p] * x[ Qi[p] ] ;
-//     }
-//     y[j] = yj;
-//   }
-// }

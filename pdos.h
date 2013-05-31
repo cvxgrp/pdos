@@ -13,11 +13,11 @@
 /* struct containing algorithm parameters */
 typedef struct PROBLEM_PARAMS {
   idxint MAX_ITERS, CG_MAX_ITS;
-  double EPS_ABS, EPS_REL, ALPHA, CG_TOL;
+  double EPS_ABS, ALPHA, CG_TOL;
   idxint VERBOSE, NORMALIZE;  // boolean
 } Params;
 
-/* struct that containing standard problem data */
+/* struct containing standard problem data */
 typedef struct PROBLEM_DATA {
   idxint n, m; /* problem dimensions */
   /* problem data, A, b, c: */

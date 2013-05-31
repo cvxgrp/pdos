@@ -10,6 +10,21 @@
 
 #define EQUILIBRATE_ITERS 3
 
+/*
+ * commonWorkInit(const Data *d, const Cone *k)
+ * --------------------------------------------
+ * Given a piece of data and a cone, this function performs the workspace
+ * initalization that is *common* to both the direct and indirect methods.
+ *
+ * It will allocate memory for the PDOS algorithm: the vectors, x, stilde, s,
+ * and y. Furthermore, x and stilde are contiguous in memory. It will allocate
+ * memory for the scaling matrices D and E. It will also set the lambda 
+ * parameter.
+ *
+ * If we are to normalize the matrix A, a normalized copy of the data is made.
+ * 
+ */
+ 
 static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   Work * w = PDOS_malloc(sizeof(Work));
   // copy dimensions
@@ -19,8 +34,13 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   // ensure that x, stilde are contiguous in memory
   w->x = PDOS_calloc(d->n + MAX(d->m,d->n),sizeof(double));
   w->stilde = w->x + d->n;
+  // allocate workspace memory for s and y
   w->s = PDOS_calloc(d->m,sizeof(double));
   w->y = PDOS_calloc(d->m,sizeof(double));  
+  
+  // allocate workspace memory for normalization matrices
+  w->D = PDOS_malloc(d->m*sizeof(double));
+  w->E = PDOS_malloc(d->n*sizeof(double));
 
   if(d->p->NORMALIZE) {
     idxint i,j = 0;
@@ -33,27 +53,16 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     w->b = PDOS_calloc(d->m, sizeof(double));
     w->c = PDOS_calloc(d->n, sizeof(double));
     
-    w->D = PDOS_malloc(d->m*sizeof(double));
     double *pi = PDOS_calloc(d->m, sizeof(double));
     for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
 
-    w->E = PDOS_malloc(d->n*sizeof(double));
     double *delta = PDOS_calloc(d->n, sizeof(double));
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
     
     // set w->Ax = d->Ax
     for(i = 0; i < Anz; ++i) w->Ax[i] = d->Ax[i];
     
-    
     for( iters = 0; iters < EQUILIBRATE_ITERS; ++iters) {
-      // // As = As*diag(delta)
-      // for(i = 0; i < d->n; ++i) { // cols
-      //   for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
-      //     d->Ax[j] *= delta[i];
-      //   }
-      //   delta[i] = 0.0; // in preparation for computing max
-      // }
-      // 
       
       // compute max across rows
       for(i = 0; i < d->n; ++i) { // cols
@@ -98,16 +107,19 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     
     PDOS_free(pi); PDOS_free(delta);
     
-    // now compute max down through columns
+    // now scale A
     for(i = 0; i < d->n; ++i) { // cols
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
         w->Ax[j] *= w->D[d->Ai[j]]*w->E[i];            
       }
     }
 
+    // scale c
     for(i = 0; i < d->n; ++i) {
       w->c[i] = d->c[i]*w->E[i];
     }
+    
+    // scale b
     for(i = 0; i < d->m; ++i) {
       w->b[i] = d->b[i]*w->D[i];
     }
@@ -119,8 +131,9 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     //   }
     //   printf("\n");
     // }
-
   } else {
+    // if we don't normalize, we just point out workspace copy to the actual
+    // data copies of the problem data
     w->Ax = d->Ax;
     w->Ai = d->Ai;
     w->Ap = d->Ap;
@@ -129,10 +142,8 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     
     idxint i;
     
-    w->D = PDOS_malloc(d->m*sizeof(double));
+    // set the scaling matrices to the identity
     for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
-
-    w->E = PDOS_malloc(d->n*sizeof(double));
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
   

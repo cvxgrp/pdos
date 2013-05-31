@@ -13,43 +13,50 @@ void freePriv(Work * w){
 }
 
 static inline void prepArgument(Work *w) {
-  // memcpy(w->z_half,w->z,w->l*sizeof(double));
-  // addScaledArray(w->z_half,w->lam,w->l,-1);
+  // uses the x and stilde memory space to store the argument, since we don't
+  // need that memory space anymore
   
-  // w->x = (-(x-c), b - (s+y))  
+  // w->x = (-(x-lambda*c), b - (s+y))  
   idxint i;  
   for (i = 0; i < w->n; i++) { 
-    // set x = -(x - c)
+    // set x = -(x - lambda*c)
     w->x[i] = w->lambda*w->c[i] - w->x[i];
   }
   for (i = 0; i < w->m; i++) { 
-    // set s_half = (b - (s + y))
+    // set stilde = (b - (s + lambda*y))
     w->stilde[i] = w->b[i] - (w->s[i] + w->lambda*w->y[i]);
   }
 }
 
 void projectLinSys(Work * w){
-  // this preps the argument (-(x-c), b - (s+y)) for LDL solve 
+  // this preps the argument (-(x-lambda*c), b - (s+lambda*y)) for LDL solve 
   // (puts it in w->x)  
-  prepArgument(w);  
-  choleskySolve(w->x, w->x, w->p->L, w->p->D, w->p->P);  
-  // stilde = b - A*x
+  prepArgument(w); 
   
-  memcpy(w->stilde, w->b, w->m*sizeof(double));
+  // now solve the linear system
+  choleskySolve(w->x, w->x, w->p->L, w->p->D, w->p->P);  
+  
+  // now find stilde...
+  // stilde = b - A*x
+  memcpy(w->stilde, w->b, w->m*sizeof(double)); // stilde = b
   // stilde -= A*x
   decumByA(w, w->x, w->stilde);  
 }
 
 Work * initWork(const Data* d, const Cone *k){ 
+  // initialize workspace for direct solver
   idxint n_plus_m = d->n + d->m;
   Work *w = commonWorkInit(d,k);
   w->p = PDOS_malloc(sizeof(Priv));
 
+  // allocate permutation vector and LDL data structures
   w->p->P = PDOS_malloc(sizeof(idxint)*n_plus_m);
   w->p->L = PDOS_malloc(sizeof (cs));
   w->p->L->m = n_plus_m;
   w->p->L->n = n_plus_m;
   w->p->L->nz = -1; 
+  
+  // factorize the KKT system
   factorize(w);
   
   return w;
@@ -108,6 +115,8 @@ void factorize(Work * w){
 #endif
   double *info;
   choleskyInit(K, w->p->P, &info);
+  
+  // perform ordering
 #ifdef PRINTKKT
   if(w->params->VERBOSE) {
 #ifdef DLONG
@@ -117,9 +126,16 @@ void factorize(Work * w){
 #endif
   }
 #endif
+  
+  // compute the inverse permutation
   idxint * Pinv = cs_pinv(w->p->P, w->m+w->n);
-  cs * C = cs_symperm(K, Pinv, 1); 
+  
+  // permute the KKT matrix
+  cs * C = cs_symperm(K, Pinv, 1);
+  
+  // perform the LDL factorization
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
+  
   if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq(&KKT_timer));
   cs_spfree(C);cs_spfree(K);PDOS_free(Pinv);PDOS_free(info);
 }
@@ -158,10 +174,11 @@ void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D
 
 void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[])
 {
+  // return x = P^{-T} L^{-T} D^{-1} L^{-1} P^{-1} b
 	if (P == NULL) {
+    // if x = b, then will do an in-place solve 
 		if (x != b) // if they're different addresses
       memcpy(x,b, (L->n)*sizeof(double)); 
-    // for ( i = 0; i < n; i++) { x[i] = b[i]; } 
 
 #ifdef LDL_LONG
     // do the solve

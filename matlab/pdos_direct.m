@@ -13,6 +13,8 @@ function [x, s, y, status] = pdos_direct(data, cone, params)
 % free cone, lp cone, second order cone(s)
 %
 % data must consist of data.A, data.b, data.c, where A,b,c used as above.
+% You must take care to ensure that data.A is sparse while data.b and data.c
+% are dense. 
 %  
 % cone struct must consist of:
 % cone.f, length of free cone (for equality constraints)
@@ -28,7 +30,6 @@ function [x, s, y, status] = pdos_direct(data, cone, params)
 %   ALPHA       : over-relaxation parameter, between (0,2).
 %   MAX_ITERS   : maximum number of ADMM iterations.
 %   EPS_ABS     : accuracy of solution
-%   EPS_INFEAS  : tolerance for infeasibility
 %   CG_MAX_ITS  : maximum number of CG iterations
 %   CG_TOL      : tolerance of CG
 %   VERBOSE     : verbosity level (0 or 1)

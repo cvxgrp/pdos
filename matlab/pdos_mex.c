@@ -4,12 +4,31 @@
 
 static double getParameterField(const mxArray *params, const char *field, Data *d, Cone *k)
 {
+  // helper function for getting a field of the params struct
   const mxArray *tmp = mxGetField(params, 0, field);
   if(tmp == NULL) {
     mxFree(d); mxFree(k);
     mexErrMsgIdAndTxt("PDOS:getParams", "Params struct must contain a(n) `%s` entry.", field);
   }
   return *mxGetPr(tmp);
+}
+
+static idxint getVectorLength(const mxArray *vec, const char *vec_name) {
+  // get the vector length (even if transposed)
+  long int m = mxGetM(vec);
+  long int n = mxGetN(vec);
+  
+  if(m == 0 || n == 0) {
+    return 0;
+  }
+  if(m == 1) {
+    return n;
+  }
+  if (n == 1) {
+    return m;
+  }
+  
+  mexErrMsgIdAndTxt("PDOS:getVector", "Expected row or column vector `%s`.", vec_name);
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -34,22 +53,45 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Input matrix A must be in sparse format (pass in sparse(A))");
   }
+  if (mxIsComplex(A_mex)) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Input matrix A cannot be complex");
+  }
+  
   const mxArray *b_mex = (mxArray *) mxGetField(data,0,"b");
   if(b_mex == NULL) {
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `b` entry.");
   }
+  if(mxIsSparse(b_mex)) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Input vector b must be dense (pass in full(b))");
+  }
+  if (mxIsComplex(b_mex)) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Input vector b cannot be complex");
+  }
+  
   const mxArray *c_mex = (mxArray *) mxGetField(data,0,"c"); 
   if(c_mex == NULL) {
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `c` entry.");
   }
+  if(mxIsSparse(c_mex)) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Input vector c must be dense (pass in full(c))");
+  }
+  if (mxIsComplex(c_mex)) {
+    mxFree(d); mxFree(k);
+    mexErrMsgTxt("Input vector c cannot be complex");
+  }
 
   
   const mxArray *cone = prhs[1];
   const mxArray *params = prhs[2];
-  d->n = *(mxGetDimensions(c_mex));
-  d->m = *(mxGetDimensions(b_mex));
+  
+  d->n = getVectorLength(c_mex,"data.c");
+  d->m = getVectorLength(b_mex,"data.b");
 
   d->b = mxGetPr(b_mex);
   d->c = mxGetPr(c_mex);
@@ -58,7 +100,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   d->p->MAX_ITERS = (idxint)getParameterField(params, "MAX_ITERS", d, k);
   
   d->p->EPS_ABS = getParameterField(params, "EPS_ABS", d, k);
-  d->p->EPS_REL = getParameterField(params, "EPS_REL", d, k);
 
   d->p->CG_MAX_ITS = (idxint)getParameterField(params, "CG_MAX_ITS", d, k);
   d->p->CG_TOL = getParameterField(params, "CG_TOL", d, k);
@@ -86,7 +127,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   double * q_mex_vals = mxGetPr(q_mex);
-  k->qsize = *(mxGetDimensions(mxGetField(cone,0,"q")));
+  k->qsize = getVectorLength(mxGetField(cone,0,"q"), "cone.q");
   idxint i;
   
   k->q = mxMalloc(sizeof(idxint)*k->qsize);
@@ -116,9 +157,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   plhs[3] = mxCreateString(sol->status);
   
   mxFree(d->p); mxFree(d); mxFree(k->q); mxFree(k);
-  
-  //free(d->Ai);free(d->Ap);free(d);free(k->q);free(k);
-  
-  //return; 
+    
+  return; 
 }
 

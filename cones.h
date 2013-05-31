@@ -4,16 +4,14 @@
 #include <string.h>
 #include "globals.h"
 
-//#include "pdos.h"
 
-typedef struct Cone_t {
+typedef struct CONE {
     idxint f;          /* number of linear equality constraints */
     idxint l;          /* length of LP cone */
-    idxint *q;   		/* array of second-order cone constraints */
+    idxint *q;   		   /* array of second-order cone constraints */
     idxint qsize;      /* length of SOC array */
 } Cone;
 
 void projCone(double *x,const Cone *k);
-//void projDualCone(double *x,Cone *k);
 
 #endif

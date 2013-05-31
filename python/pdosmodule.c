@@ -2,8 +2,7 @@
 #include "pdos.h"
 #include "cvxopt.h"
 
-/* this code uses cvxopt array types
- */
+/* this code uses cvxopt matrix types */
 
 
 static inline void freeDataAndConeOnly(Data **d, Cone **k) {
@@ -17,8 +16,6 @@ static inline void freeDataAndConeOnly(Data **d, Cone **k) {
 }
 
 // TODO: use PyObject * to keep track of whether or not two objects are equivalent (for warm-starting)
-// static const double *prev_Ax, *prev_b, *prev_c;
-// static const int *prev_Ai, *prev_Ap, *prev_q;
 
 static Sol *solution = NULL;
 
@@ -35,8 +32,8 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    * CG_MAX_ITS and CG_TOL can also be provided as options.
    *
    * `c` is a cvxopt (dense) column vector
-   * `G` is a cvxopt (sparse) matrix
-   * `h` is a cvxopt (dense) column vector
+   * `A` is a cvxopt (sparse) matrix
+   * `b` is a cvxopt (dense) column vector
    * `dims` is a dictionary with
    *    `dims['f']` an integer giving the number of equality constraints
    *    `dims['l']` an integer specifying the dimension of positive orthant cone
@@ -44,15 +41,10 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    * `opts` is an optional dictionary with
    *    `opts['MAX_ITERS']` is an integer. Sets the maximum number of ADMM iterations.
    *        Defaults to 2000.
-   *    `opts['SEARCH_ITERS']` is an integer. Sets the maximum number of iterations
-   *        used to search for rho and sigma. Defaults to 10.
    *    `opts['EPS_ABS']` is a double. Sets the quitting tolerance for ADMM. 
-   *        Defaults to 1e-3.
+   *        Defaults to 5e-3.
    *    `opts['ALPHA']` is a double in (0,2) (non-inclusive). Sets the over-relaxation
    *        parameter. Defaults to 1.0.
-   *    `opts['BETA']` is a double in [0,1] (inclusive). Sets the smoothing
-   *        parameter. Defaults to 0.01.
-   *    `opts['TAU']` is a double. Sets the threshold for ZERO. Defaults to 1e-8.
    *    `opts['VERBOSE']` is an integer (or Boolean) either 0 or 1. Sets the verbosity of
    *        the solver. Defaults to 1 (or True).
    *    `opts['NORMALIZE']` is an integer (or Boolean) either 0 or 1. Tells the solver to
@@ -61,7 +53,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
    *    `opts['CG_MAX_ITS']` is an integer. Sets the maximum number of CG iterations.
    *        Defaults to 20.
    *    `opts['CG_TOL']` is a double. Sets the tolerance for CG.
-   *        Defaults to 1e-3.
+   *        Defaults to 1e-4.
    *  
    * The code returns a Python dictionary with three keys, 'x', 'y', and 'status'.
    * These report the primal and dual solution (as cvxopt dense matrices) and the solver
@@ -73,8 +65,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   d->p = malloc(sizeof(Params));
   // set default values
   d->p->MAX_ITERS = 2000;
-  d->p->EPS_ABS = 1e-3;
-  d->p->EPS_REL = 1e-2;
+  d->p->EPS_ABS = 5e-3;
   d->p->ALPHA = 1.0;
   d->p->VERBOSE = 1;
 #ifdef INDIRECT
@@ -82,36 +73,36 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   d->p->CG_TOL = 1e-4;
 #endif
   
-  matrix *c, *h;
-  spmatrix *G;
+  matrix *c, *b;
+  spmatrix *A;
   PyObject *dims, *opts = NULL;
   
   idxint m, n, i, num_conic_variables = 0;
   
   if( !PyArg_ParseTuple(args, "OOOO!|O!",
         &c,
-        &G,
-        &h,
+        &A,
+        &b,
         &PyDict_Type, &dims,
         &PyDict_Type, &opts)
     ) { freeDataAndConeOnly(&d,&k); return NULL; }
         
-  /* set G */
-  if ((SpMatrix_Check(G) && SP_ID(G) != DOUBLE)){
-      PyErr_SetString(PyExc_TypeError, "G must be a sparse 'd' matrix");
+  /* set A */
+  if ((SpMatrix_Check(A) && SP_ID(A) != DOUBLE)){
+      PyErr_SetString(PyExc_TypeError, "A must be a sparse 'd' matrix");
       freeDataAndConeOnly(&d,&k); return NULL;
   }
-  if ((m = SP_NROWS(G)) <= 0) {
+  if ((m = SP_NROWS(A)) <= 0) {
       PyErr_SetString(PyExc_ValueError, "m must be a positive integer");
       freeDataAndConeOnly(&d,&k); return NULL;
   }
-  if ((n = SP_NCOLS(G)) <= 0) {
+  if ((n = SP_NCOLS(A)) <= 0) {
       PyErr_SetString(PyExc_ValueError, "n must be a positive integer");
       freeDataAndConeOnly(&d,&k); return NULL;
   }
-  d->Ax = SP_VALD(G);
-  d->Ai = SP_ROW(G);
-  d->Ap = SP_COL(G);
+  d->Ax = SP_VALD(A);
+  d->Ai = SP_ROW(A);
+  d->Ap = SP_COL(A);
 
   /* set c */
   if (!Matrix_Check(c) || MAT_NCOLS(c) != 1 || MAT_ID(c) != DOUBLE) {
@@ -120,22 +111,22 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   }
 
   if (MAT_NROWS(c) != n){
-      PyErr_SetString(PyExc_ValueError, "c has incompatible dimension with G");
+      PyErr_SetString(PyExc_ValueError, "c has incompatible dimension with A");
       freeDataAndConeOnly(&d,&k); return NULL;
   }
   d->c = MAT_BUFD(c);
 
   /* set h */
-  if (!Matrix_Check(h) || MAT_NCOLS(h) != 1 || MAT_ID(h) != DOUBLE) {
-    PyErr_SetString(PyExc_TypeError, "h must be a dense 'd' matrix with one column");
+  if (!Matrix_Check(b) || MAT_NCOLS(b) != 1 || MAT_ID(b) != DOUBLE) {
+    PyErr_SetString(PyExc_TypeError, "b must be a dense 'd' matrix with one column");
     freeDataAndConeOnly(&d,&k); return NULL;
   }
 
-  if (MAT_NROWS(h) != m){
-      PyErr_SetString(PyExc_ValueError, "h has incompatible dimension with G");
+  if (MAT_NROWS(b) != m){
+      PyErr_SetString(PyExc_ValueError, "b has incompatible dimension with A");
       freeDataAndConeOnly(&d,&k); return NULL;
   }
-  d->b = MAT_BUFD(h);
+  d->b = MAT_BUFD(b);
   
   // set dimensions
   d->m = m; d->n = n;
@@ -234,17 +225,6 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       }
     }
     
-    /* EPS_REL */
-    dictObj = PyDict_GetItemString(opts, "EPS_REL");
-    if(dictObj) {
-      if(PyFloat_Check(dictObj) && ((d->p->EPS_REL = (double) PyFloat_AsDouble(dictObj)) >= 0.0)) {
-        // do nothing
-      } else {
-        PyErr_SetString(PyExc_TypeError, "opts['EPS_REL'] ought to be a positive floating point value");
-        freeDataAndConeOnly(&d,&k); return NULL;
-      }
-    }
-    
     /* ALPHA */
     dictObj = PyDict_GetItemString(opts, "ALPHA");
     if(dictObj) {
@@ -294,6 +274,13 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
   if(!(x = Matrix_New(n,1,DOUBLE)))
     return PyErr_NoMemory();
   memcpy(MAT_BUFD(x), solution->x, n*sizeof(double));
+  
+  /* s */
+  matrix *s;
+  if(!(s = Matrix_New(m,1,DOUBLE)))
+    return PyErr_NoMemory();
+  memcpy(MAT_BUFD(s), solution->s, m*sizeof(double));
+  
         
   /* y */
   matrix *y;
@@ -301,9 +288,9 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     return PyErr_NoMemory();
   memcpy(MAT_BUFD(y), solution->y, m*sizeof(double));
 
-  PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:s}","x", x, "y", y, "status", solution->status);
+  PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:O,s:s}","x", x, "s", y, "y", y, "status", solution->status);
   // give up ownership to the return dictionary
-  Py_DECREF(x); Py_DECREF(y); 
+  Py_DECREF(x); Py_DECREF(s); Py_DECREF(y); 
   
   // do some cleanup
   freeDataAndConeOnly(&d,&k);
