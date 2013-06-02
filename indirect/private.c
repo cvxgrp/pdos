@@ -46,7 +46,9 @@ static inline void cgCustom(Work *w){
   const double *s = w->stilde; // contains v - b
   
 	double alpha, beta, qsnew_sq=0;
-  double tol_sq = TOL*TOL;  // XXX: could be a very small number...
+  // we multiply the tolerance by RATIO since the "x" space is scaled by the
+  // inverse of this ratio
+  double tol_sq = TOL*TOL*RATIO;  // XXX: could be a very small number...
   
   /* q = -lambda * c - A'*(A*x - b + v) */
   memcpy(Ax, s, (w->m)*sizeof(double));

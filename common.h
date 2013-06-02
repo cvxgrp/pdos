@@ -9,7 +9,8 @@
 #endif
 
 #define EQUILIBRATE_ITERS 3
-#define SQRT_MU_RHO 10
+#define RATIO 1e6
+#define SQRT_RATIO 1e3
 
 static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
 {
@@ -250,11 +251,11 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   
   // set ratio of "x" space penatly (1e-6) to "s,y" space penatly (1)
   for( i=0; i < d->n; ++i ) {
-    w->E[i] *= SQRT_MU_RHO;
-    w->c[i] *= SQRT_MU_RHO;
+    w->E[i] *= SQRT_RATIO;
+    w->c[i] *= SQRT_RATIO;
   } 
   for( i=0; i < Anz; ++i ) {
-    w->Ax[i] *= SQRT_MU_RHO;
+    w->Ax[i] *= SQRT_RATIO;
   }
     
   return w;
