@@ -1,4 +1,7 @@
 #include "pdos.h"
+#ifndef NDEBUG
+#include <assert.h>
+#endif
 
 // define "zero" threshold
 static const double ZERO = 1e-8;
@@ -55,6 +58,15 @@ Sol * pdos(const Data * d, const Cone * k)
   }
 	idxint i, STATE = INDETERMINATE;
   struct resid residuals = { -1, -1, -1, -1, -1 };
+
+#ifndef NDEBUG
+  // ensure that cone sizes match data size
+  idxint cone_sz = 0;
+  for (i = 0; i < k->qsize; ++i) {
+    cone_sz += k->q[i];
+  }
+  assert( d->m == cone_sz + k->f + k->l );
+#endif
 
   // set the parameters
   Params *p = d->p;
