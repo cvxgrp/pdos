@@ -24,7 +24,7 @@ where `K` is a product cone of zero cones, linear cones `{ x | x >= 0 }`, and
 second-order cones `{ (t,x) | ||x||_2 <= t }`; `K^*` is its dual cone. The
 dual of the zero cone is the free cone; all other cones are self-dual.
 
-A reference Matlab implementation is included under the `matlab` folder; it is called `vanilla_pdos.m`.
+A reference Matlab implementation is included under the `matlab` folder; it is called `pdos.m`.
 
 Installing
 ----------
@@ -166,6 +166,6 @@ systems (c.f., Jack Poulson's Elemental) or a distributed matrix-vector multipli
 
 Known Issues
 ------------
-* When using OSX's built-in version of Python, `setup.py` may attempt to build Power PC versions of the Python extensions. If you upgraded to Xcode 4, then support for Power PC has been removed. In that case, the build process may complain about the Power PC architecture. Simply use the following instead:
+* When using older versions of OSX's built-in version of Python, `setup.py` may attempt to build Power PC versions of the Python extensions. If you upgraded to Xcode 4, then support for Power PC has been removed. In that case, the build process may complain about the Power PC architecture. Simply use the following instead:
 
     ARCHFLAGS='-arch i386 -arch x86_64' python setup.py install
