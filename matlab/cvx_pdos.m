@@ -106,9 +106,8 @@ c  = reord' * c;
 %end
 
 pars.ALPHA = 1.8;
-pars.MAX_ITERS = 5000;
-pars.EPS_ABS = 1e-3;
-pars.EPS_REL = 1e-2;
+pars.MAX_ITERS = 10000;
+pars.EPS_ABS = 5e-3;
 if quiet
     pars.VERBOSE = 0;
 else

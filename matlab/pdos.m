@@ -72,7 +72,7 @@ end
 %%
 D = ones(m,1);  % D
 E = ones(n,1);  % E
-ratio = 1.0;    % mu / lambda
+ratio = 1.0;    % 1 / sqrt( mu )
 
 % store these before Dlizing
 bnorm = norm(data.b,'inf');
