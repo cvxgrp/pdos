@@ -1,7 +1,8 @@
-#ifndef COMMON_H_GUARD                                                              
+#ifndef COMMON_H_GUARD
 #define COMMON_H_GUARD
 
 #include "pdos.h"
+#include "cs.h"
 #include <math.h>
 
 #ifndef MAX
@@ -14,26 +15,29 @@
 
 static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
 {
+  // thie function replaces all nonzero entires of w->Ax with max of absolute
+  // value of each cone, same with w->b
+  //
   // assumes w->Ax contains all of d->Ax
   //         w->b  contains all of d->b
   //         w->c  contains all of d->c
   idxint i, j, ind, cone, cone_idx;
   double max_val;
-  
+
   for(i = 0; i < d->n; ++i) { // cols
     ind = k->f + k->l;
     j = d->Ap[i];
-  
+
     // seek to the first cone
     while( j < d->Ap[i+1] && d->Ai[j] < ind ) {
       j++;
     }
-  
+
     cone = 0;
     while (j < d->Ap[i+1]) {
       // while we're in a cone
       max_val = 0;
-    
+
       // find the maximum in this column
       cone_idx = j;
       while (ind <= d->Ai[cone_idx] && d->Ai[cone_idx] < ind + k->q[cone]) {
@@ -49,8 +53,8 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
         w->Ai[j] = ind;
         j++;
       }
-    
-      ind += k->q[cone++]; 
+
+      ind += k->q[cone++];
     } // otherwise, move on to next column
   }
 
@@ -65,7 +69,7 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
       w->b[ind + i] = max_val;
     }
     ind += k->q[cone];
-  }    
+  }
 }
 
 /*
@@ -76,17 +80,17 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
  *
  * It will allocate memory for the PDOS algorithm: the vectors, x, stilde, s,
  * and y. Furthermore, x and stilde are contiguous in memory. It will allocate
- * memory for the scaling matrices D and E. It will also set the lambda 
+ * memory for the scaling matrices D and E. It will also set the lambda
  * parameter.
  *
  * If we are to normalize the matrix A, a normalized copy of the data is made.
- * 
+ *
  */
- 
+
 static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   idxint i,j = 0;
   idxint Anz = d->Ap[d->n];
-  
+
   Work * w = PDOS_malloc(sizeof(Work));
   // copy dimensions
   w->m = d->m; w->n = d->n;
@@ -97,15 +101,15 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   w->stilde = w->x + d->n;
   // allocate workspace memory for s and y
   w->s = PDOS_calloc(d->m,sizeof(double));
-  w->y = PDOS_calloc(d->m,sizeof(double));  
-  
+  w->y = PDOS_calloc(d->m,sizeof(double));
+
   // allocate workspace memory for normalization matrices
   w->D = PDOS_malloc(d->m*sizeof(double));
   w->E = PDOS_malloc(d->n*sizeof(double));
 
   if(d->p->NORMALIZE) {
     idxint iters = 0;
-    
+
     w->Ax = PDOS_calloc(Anz, sizeof(double));
     // create a temporary copy of row indices
     w->Ai = PDOS_calloc(Anz, sizeof(idxint));
@@ -114,48 +118,48 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     w->Ap = d->Ap;
     w->b = PDOS_calloc(d->m, sizeof(double));
     w->c = PDOS_calloc(d->n, sizeof(double));
-        
+
     double *pi = PDOS_calloc(d->m, sizeof(double));
     for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
 
     double *delta = PDOS_calloc(d->n, sizeof(double));
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
-    
+
     // since we equilibrate [A b; c^T 0], these correspond to the last row
     // and last column, respectively. we discard them later.
     double lastD = 1.0, lastE = 1.0;
     double lastPi = 0.0, lastDelta = 0.0;
-    
+
     // set w->Ax = d->Ax
     memcpy(w->Ax, d->Ax, Anz*sizeof(double));
-    
-    // set w->c = d->c 
+
+    // set w->c = d->c
     memcpy(w->c, d->c, d->n*sizeof(double));
-    
+
     // set w->b = d->b
     memcpy(w->b, d->b, d->m*sizeof(double));
-    
+
     // replace all nonzero entires of w->Ax with max of absolute value of each cone, same with w->b
     // this preserves the cone boundaries
     if (k->qsize > 0) {
       collapseWorkspaceData(w,d,k);
     }
-    
+
     // for (i = 0; i < Anz; ++i) {
     //   printf("%f ", w->Ax[i]);
     // }
     // printf("\n");
-    
+
     idxint ind, cone;
-    
+
     // equilibrate [A b; c^T 0]
     for( iters = 0; iters < EQUILIBRATE_ITERS; ++iters) {
-      
+
       // compute max across rows
       for(i = 0; i < d->n; ++i) { // cols
         for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
           // IMPORTANT: must use w->Ax and w->Ai since that has collapsed A
-          pi[w->Ai[j]] = MAX(pi[w->Ai[j]], fabs(w->Ax[j])*w->E[i]);            
+          pi[w->Ai[j]] = MAX(pi[w->Ai[j]], fabs(w->Ax[j])*w->E[i]);
         }
         // last row
         lastPi = MAX(lastPi, fabs(w->c[i])*w->E[i]);
@@ -164,7 +168,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       for(i = 0; i < d->m; ++i) { // rows
         pi[i] = MAX(pi[i], fabs(w->b[i])*lastE);
       }
-      
+
       // now collapse cones together
       // recall that all other rows were just 0
       ind = k->f + k->l;
@@ -173,8 +177,8 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
           pi[ind+i] = pi[ind];
         }
         ind += k->q[cone];
-      }    
-      
+      }
+
       for(i = 0; i < d->m; ++i) {
         w->D[i] = sqrt(w->D[i] / pi[i]);
         pi[i] = 0.0;  // set to 0 to compute max
@@ -182,12 +186,12 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       // handle last element
       lastD = sqrt( lastD / lastPi );
       lastPi = 0.0;
-      
+
       // now compute max down through columns
       for(i = 0; i < d->n; ++i) { // cols
         for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
           // IMPORTANT: must use w->Ax and w->Ai, since that has collapsed A
-          delta[i] = MAX(delta[i], fabs(w->Ax[j])*w->D[w->Ai[j]]);            
+          delta[i] = MAX(delta[i], fabs(w->Ax[j])*w->D[w->Ai[j]]);
         }
         // walk through d->n columns of delta and update with c
         delta[i] = MAX(delta[i], fabs(w->c[i])*lastD);
@@ -196,8 +200,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       for(i = 0; i < d->m; ++i) { // rows
         lastDelta = MAX(lastDelta, fabs(w->b[i])*w->D[i]);
       }
-      
-      
+
       for(i = 0; i < d->n; ++i) {
         w->E[i] = sqrt(w->E[i] / delta[i]);
         delta[i] = 0.0;
@@ -206,18 +209,18 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       lastE = sqrt( lastE / lastDelta );
       lastDelta = 0.0;
     }
-    
-    PDOS_free(pi); PDOS_free(delta); 
+
+    PDOS_free(pi); PDOS_free(delta);
     // free the temporary copy
     PDOS_free(w->Ai);
     // now set w->Ai properly
     w->Ai = d->Ai;
-    
+
     // now scale A
     for(i = 0; i < d->n; ++i) { // cols
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
         // IMPORTANT: must use d->Ax since w->Ax contains collapsed data
-        w->Ax[j] = w->D[d->Ai[j]]*d->Ax[j]*w->E[i];            
+        w->Ax[j] = w->D[d->Ai[j]]*d->Ax[j]*w->E[i];
       }
     }
 
@@ -229,7 +232,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     for(i = 0; i < d->m; ++i) {
       w->b[i] = d->b[i]*w->D[i];
     }
-    
+
   } else {
     // if we don't normalize, we just point out workspace copy to the actual
     // data copies of the problem data
@@ -238,26 +241,30 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     w->Ap = d->Ap;
     w->b = d->b;
     w->c = d->c;
-    
+
     idxint i;
-    
+
     // set the scaling matrices to the identity
     for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
-  
+
   printf("nb: %f nc: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
   w->lambda = calcNorm(w->b,w->m) / calcNorm(w->c,w->n) ;
-  
-  // set ratio of "x" space penatly (1e-6) to "s,y" space penatly (1)
+
+  // set ratio of "x" space penalty (1e-6) to "s,y" space penatly (1)
   for( i=0; i < d->n; ++i ) {
     w->E[i] *= SQRT_RATIO;
     w->c[i] *= SQRT_RATIO;
-  } 
+  }
   for( i=0; i < Anz; ++i ) {
     w->Ax[i] *= SQRT_RATIO;
   }
-    
+
+  // transpose the A matrix and store it
+	cs * At = PDOS_calloc(1, sizeof(cs));
+
+
   return w;
 }
 

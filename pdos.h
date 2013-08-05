@@ -1,4 +1,4 @@
-#ifndef PDOS_H_GUARD                                                              
+#ifndef PDOS_H_GUARD
 #define PDOS_H_GUARD
 
 // include different things depending on which version to compile instead of
@@ -24,7 +24,7 @@ typedef struct PROBLEM_DATA {
   double * Ax;
   idxint * Ai, * Ap;
   double * b, * c;
-  
+
   Params * p;
 } Data;
 
@@ -39,31 +39,35 @@ typedef struct PRIVATE_DATA Priv;
 // contains all the data for the solver
 typedef struct WORK {
   idxint n, m; /* problem dimensions */
-  
+
   // problem data
   // if normalized, this is D*A*E, otherwise just points to data's Ax
-  double * Ax;        
+  double * Ax;
   idxint * Ai, * Ap;  // these just point to data's Ai and Ap
+  // stores the transpose of the sparse matrix A
+  double * Atx;
+  idxint * Ati, * Atp;
+
   // b, c
   double * b, * c;    // if normalized, these are D*b, E*c
-  
-  
+
+
   // x in R^n
   // s, y, stilde in R^m
   // x points to a vector that is n+m long, stilde points to the bottom 'm'
   // of that vector
   double *x, *s, *y, *stilde;
-  
+
   double *D, *E;  // A = D*A*E
-  
+
   double lambda;
-  
+
   Params *params;
   Priv * p;
 } Work;
 
 
-#include <string.h>    
+#include <string.h>
 #include <sys/time.h>
 #include <math.h>
 #include "cones.h"

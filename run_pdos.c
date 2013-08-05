@@ -3,7 +3,7 @@
 
 #ifndef DEMO_PATH
 #define DEMO_PATH "../data_pdos"
-#endif 
+#endif
 
 #ifdef DLONG
 #define READ_INT "%li"
@@ -25,72 +25,73 @@ int main(int argc, char **argv)
   read_in_data(fp,&d,&k);
   fclose(fp);
   printf("File IO %4f seconds\n",tocq(&PDOS_timer));
-  
+
   tic(&PDOS_timer);
   Sol * sol = pdos(d,k);
   printf("Total factorize + solve time %4f seconds\n",tocq(&PDOS_timer));
-  
+
   freeData(&d,&k);
   freeSol(&sol);
   return 0;
 }
 
 void read_in_data(FILE * fp,Data ** d, Cone ** k){
+  idxint i = 0; // loop index
 	/* MATRIX IN DATA FILE MUST BE IN COLUMN COMPRESSED FORMAT */
   (*d)->p = malloc(sizeof(Params));
-  
+
 	fscanf(fp, READ_INT, &((*d)->n));
 	fscanf(fp, READ_INT, &((*d)->m));
   fscanf(fp, READ_INT, &((*k)->f));
   fscanf(fp, READ_INT, &((*k)->l));
-  fscanf(fp, READ_INT, &((*k)->qsize)); 
+  fscanf(fp, READ_INT, &((*k)->qsize));
   (*k)->q = malloc(sizeof(idxint)*(*k)->qsize);
-  for(idxint i = 0; i < (*k)->qsize; i++)
-  { 
+  for(i = 0; i < (*k)->qsize; i++)
+  {
     fscanf(fp, READ_INT, &(*k)->q[i]);
   }
 
   (*d)->b = malloc(sizeof(double)*(*d)->m);
-  for(idxint i = 0; i < (*d)->m; i++)
-  { 
+  for(i = 0; i < (*d)->m; i++)
+  {
     fscanf(fp, READ_FLOAT, &(*d)->b[i]);
   }
 
   (*d)->c = malloc(sizeof(double)*(*d)->n);
-  for(idxint i = 0; i < (*d)->n; i++)
-  { 
+  for(i = 0; i < (*d)->n; i++)
+  {
     fscanf(fp, READ_FLOAT, &(*d)->c[i]);
   }
   fscanf(fp, READ_INT, &((*d)->p->MAX_ITERS));
-  fscanf(fp, READ_INT, &((*d)->p->CG_MAX_ITS)); 
+  fscanf(fp, READ_INT, &((*d)->p->CG_MAX_ITS));
 
   fscanf(fp, READ_FLOAT, &((*d)->p->ALPHA));
-  fscanf(fp, READ_FLOAT, &((*d)->p->EPS_ABS)); 
+  fscanf(fp, READ_FLOAT, &((*d)->p->EPS_ABS));
   //fscanf(fp, READ_FLOAT, &((*d)->p->EPS_REL));
   fscanf(fp, READ_FLOAT, &((*d)->p->CG_TOL));
   fscanf(fp, READ_INT, &((*d)->p->VERBOSE));
   fscanf(fp, READ_INT, &((*d)->p->NORMALIZE));
-    
+
   idxint Anz;
   fscanf(fp, READ_INT, &Anz);
 	(*d)->Ai = malloc(sizeof(idxint)*Anz);
-  for(idxint i = 0; i < Anz; i++)
+  for(i = 0; i < Anz; i++)
 	{
 		fscanf(fp, READ_INT, &(*d)->Ai[i]);
 	}
   (*d)->Ap = malloc(sizeof(idxint)*((*d)->n+1));
-	for(idxint i = 0; i < (*d)->n+1; i++) 
+	for(i = 0; i < (*d)->n+1; i++)
 	{
 		fscanf(fp, READ_INT, &(*d)->Ap[i]);
 	}
   (*d)->Ax = malloc(sizeof(double)*Anz);
-	for(int i = 0; i < Anz; i++)
+	for(i = 0; i < Anz; i++)
 	{
 		fscanf(fp, READ_FLOAT, &(*d)->Ax[i]);
 	}
 
- 
-  /*	
+
+  /*
   fscanf(fp, "%zu", &NNZ);
   int *Kr = malloc(sizeof(idxint)*NNZ);
 	for(int i = 0; i < NNZ; i++)
@@ -110,7 +111,7 @@ void read_in_data(FILE * fp,Data ** d, Cone ** k){
   */
 }
 
-int open_file(int argc, char ** argv, int idx, char * default_file, FILE ** fb) 
+int open_file(int argc, char ** argv, int idx, char * default_file, FILE ** fb)
 {
 	if (argc<idx+1){
 		printf("Not enough arguments supplied, using %s as default\n", default_file);

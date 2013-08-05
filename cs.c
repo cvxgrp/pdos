@@ -2,12 +2,13 @@
 #include "common.h"
 
 /* NB: this is a subset of the routines in the CSPARSE package by
-  Tim Davis et. al., for the full package please visit 
+  Tim Davis et. al., for the full package please visit
   http://www.cise.ufl.edu/research/sparse/CSparse/ */
 
 
 #define CS_MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define CS_MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define CS_CSC(A) (A && (A->nz == -1))
 
 /* wrapper for malloc */
 static inline void *cs_malloc (idxint n, idxint size)
@@ -140,4 +141,28 @@ cs *cs_symperm (const cs *A, const idxint *pinv, idxint values)
         }
     }
     return (cs_done (C, w, NULL, 1)) ;  /* success; free workspace, return C */
+}
+
+cs *cs_transpose (const cs *A, idxint values)
+{
+    idxint p, q, j, *Cp, *Ci, n, m, *Ap, *Ai, *w ;
+    double *Cx, *Ax ;
+    cs *C ;
+    if (!CS_CSC (A)) return (NULL) ;    /* check inputs */
+    m = A->m ; n = A->n ; Ap = A->p ; Ai = A->i ; Ax = A->x ;
+    C = cs_spalloc (n, m, Ap [n], values && Ax, 0) ;       /* allocate result */
+    w = cs_calloc (m, sizeof (idxint)) ;                   /* get workspace */
+    if (!C || !w) return (cs_done (C, w, NULL, 0)) ;       /* out of memory */
+    Cp = C->p ; Ci = C->i ; Cx = C->x ;
+    for (p = 0 ; p < Ap [n] ; p++) w [Ai [p]]++ ;          /* row counts */
+    cs_cumsum (Cp, w, m) ;                                 /* row pointers */
+    for (j = 0 ; j < n ; j++)
+    {
+        for (p = Ap [j] ; p < Ap [j+1] ; p++)
+        {
+            Ci [q = w [Ai [p]]++] = j ; /* place A(i,j) as entry C(j,i) */
+            if (Cx) Cx [q] = Ax [p] ;
+        }
+    }
+    return (cs_done (C, w, NULL, 1)) ;  /* success; free w and return C */
 }

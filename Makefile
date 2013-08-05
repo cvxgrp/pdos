@@ -2,10 +2,10 @@ include pdos.mk
 
 OBJECTS = pdos.o util.o cones.o cs.o
 AMD_SOURCE = $(wildcard direct/amd_*.c)
-DIRECT_OBJECTS = direct/ldl.o $(AMD_SOURCE:.c=.o) 
+DIRECT_OBJECTS = direct/ldl.o $(AMD_SOURCE:.c=.o)
 TARGETS = demo_direct demo_indirect
 
-.PHONY: default 
+.PHONY: default
 	#lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
 default: lib/libpdosdir.a lib/libpdosindir.a bin/demo_direct bin/demo_indirect
 
@@ -44,15 +44,15 @@ lib/libpdosindir.a: $(OBJECTS) indirect/private.o
 
 bin/demo_direct: run_pdos.c lib/libpdosdir.a
 	mkdir -p bin
-	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS) 
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS)
 
 bin/demo_indirect: run_pdos.c lib/libpdosindir.a
 	mkdir -p bin
-	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS) 
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean purge
 clean:
 	@rm -rf $(TARGETS) $(OBJECTS) $(DIRECT_OBJECTS) direct/private.o indirect/private.o
 
-purge: clean 
+purge: clean
 	@rm -rf bin lib

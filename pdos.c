@@ -8,7 +8,7 @@ static const double ZERO = 1e-8;
 
 // constants and data structures
 static const char* HEADER[] = {
-  " iter", 
+  " iter",
   " ||Ax+s-b||",
   " ||A'y+c||",
   "    c'x    ",
@@ -52,7 +52,7 @@ static inline void freeWork(Work ** w);
 Sol * pdos(const Data * d, const Cone * k)
 {
   static timer PDOS_timer;
-    
+
   if(d == NULL || k == NULL) {
     return NULL;
   }
@@ -70,47 +70,47 @@ Sol * pdos(const Data * d, const Cone * k)
 
   // set the parameters
   Params *p = d->p;
-  // set the denominators of DIMACS error measures (i.e., relative scale of 
+  // set the denominators of DIMACS error measures (i.e., relative scale of
   // error)
   const double pscale = (1.0 + calcNormInf(d->b, d->m));
-  const double dscale = (1.0 + calcNormInf(d->c, d->n)); 
-  
+  const double dscale = (1.0 + calcNormInf(d->c, d->n));
+
   if(p->VERBOSE) {
     PDOS_printf("\nPDOS - A Primal-Dual Operator Splitting for Cone Programming.\n");
     PDOS_printf("       (c) E. Chu, B. O'Donoghue, N. Parikh, S. Boyd, Stanford University, 2012-13.\n\n");
   }
-  
+
   // initialize workspace, allocates memory for necessary computations
 	Work * w = initWork(d, k);
-  
+
   if(p->VERBOSE) {
     PDOS_printf("lambda: %5.3e\n\n", w->lambda);
-    
+
     printHeader();
     tic(&PDOS_timer);
   }
-  
-  for (i=0; i < p->MAX_ITERS; ++i){  
-    // Pi_P  
+
+  for (i=0; i < p->MAX_ITERS; ++i){
+    // Pi_P
 		projectLinSys(w);
-		
+
     /* overrelaxation */
     relax(w);
-    
+
     // Pi_K
     projectCones(w,k);
     // y += (1.0/lambda)*(s - stilde)
     updateDualVars(w);
-    
+
     residuals.p_res = calcPriResid(w) ;
     residuals.d_res = calcDualResid(w);
     residuals.p_obj = calcPriObj(w);
     residuals.d_obj = calcDualObj(w);
     residuals.eta = fabs(residuals.p_obj - residuals.d_obj);
-     
-    // check against DIMACS error measures   
-    if (residuals.p_res < p->EPS_ABS * pscale && 
-        residuals.d_res < p->EPS_ABS * dscale && 
+
+    // check against DIMACS error measures
+    if (residuals.p_res < p->EPS_ABS * pscale &&
+        residuals.d_res < p->EPS_ABS * dscale &&
         residuals.eta < p->EPS_ABS * (1.0 + fabs(residuals.p_obj) + fabs(residuals.d_obj))) {
       STATE = SOLVED;
       break;
@@ -119,7 +119,7 @@ Sol * pdos(const Data * d, const Cone * k)
 	}
 	Sol * sol = PDOS_malloc(sizeof(Sol));
 	getSolution(w,sol,STATE);
-  
+
 	if(p->VERBOSE) {
     printSummary(i,&residuals);
     PDOS_printf("Total solve time is %4.8fs\n", tocq(&PDOS_timer));
@@ -171,6 +171,10 @@ static inline void freeWork(Work **w){
       if((*w)->b) PDOS_free((*w)->b);
       if((*w)->c) PDOS_free((*w)->c);
     }
+    if((*w)->Atx) PDOS_free((*w)->Atx);
+    if((*w)->Ati) PDOS_free((*w)->Ati);
+    if((*w)->Atp) PDOS_free((*w)->Atp);
+
     if((*w)->D) PDOS_free((*w)->D);
     if((*w)->E) PDOS_free((*w)->E);
     PDOS_free(*w);
@@ -180,7 +184,7 @@ static inline void freeWork(Work **w){
 
 static inline void printSol(const Sol * sol){
 	idxint i;
-	PDOS_printf("%s\n",sol->status); 
+	PDOS_printf("%s\n",sol->status);
 	if (sol->x != NULL){
 		for ( i=0;i< sol->n; ++i){
 #ifdef DLONG
@@ -213,7 +217,7 @@ static inline void printSol(const Sol * sol){
 static inline void updateDualVars(Work * w){
   // y = y + (1/lambda)*(s - stilde)
   idxint i;
-  for(i = 0; i < w->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i])/w->lambda; }  
+  for(i = 0; i < w->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i])/w->lambda; }
 }
 
 static inline void prepZVariable(Work *w){
@@ -272,13 +276,13 @@ static inline void sets(const Work * w, Sol * sol){
   }
 }
 
-static inline void relax(Work * w){   
+static inline void relax(Work * w){
   // stilde = alpha*stilde + (1 - alpha)*s
 	idxint j;
   const double ALPHA = w->params->ALPHA;
 	for(j=0; j < w->m; ++j){
 		w->stilde[j] = ALPHA*w->stilde[j] + (1.0 - ALPHA)*w->s[j];
-	}  
+	}
 }
 
 

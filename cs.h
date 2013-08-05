@@ -1,5 +1,5 @@
 /* NB: this is a subset of the routines in the CSPARSE package by
-  Tim Davis et. al., for the full package please visit 
+  Tim Davis et. al., for the full package please visit
   http://www.cise.ufl.edu/research/sparse/CSparse/ */
 
 /*
@@ -47,5 +47,7 @@ cs *cs_spfree (cs *A);
 double cs_cumsum (idxint *p, idxint *c, idxint n);
 idxint *cs_pinv (idxint const *p, idxint n);
 cs *cs_symperm (const cs *A, const idxint *pinv, idxint values);
+cs *cs_transpose (const cs *A, idxint values);
+
 
 #endif

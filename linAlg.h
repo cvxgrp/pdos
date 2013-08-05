@@ -5,7 +5,7 @@
 #include "pdos.h"
 
 /*
- * All basic linear operations are inlined (and further optimized) by the 
+ * All basic linear operations are inlined (and further optimized) by the
  * compiler. If compiling without optimization, causes code bloat.
  */
 
@@ -69,19 +69,19 @@ static inline void addScaledArray(double * a, const double * b, idxint n, const 
 // y += alpha*A*x
 static inline void accumByScaledA(const Work *w, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
-  
+
   /* y += A*x */
   idxint p, j, n, *Ap, *Ai ;
   double *Ax ;
   n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
-  
+
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
-    for (p = c1 ; p < c2 ; p++)        
-    {   
+    for (p = c1 ; p < c2 ; p++)
+    {
       y[Ai[p]] += sc * Ax[p] * x[ j ] ;
     }
   }
@@ -90,42 +90,49 @@ static inline void accumByScaledA(const Work *w, const double *x, const double s
 // y += alpha*A'*x
 static inline void accumByScaledATrans(const Work *w, const double *x, const double sc, double *y){
   // assumes memory storage exists for y
-  
+
   /* y += A'*x */
   idxint p, j, n, *Ap, *Ai ;
-  double *Ax ;
+  double *Ax, yj ;
   n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
-  
+
+#pragma omp parallel for private(p,c1,c2,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
-    for (p = c1 ; p < c2 ; p++)        
-    {   
-      y[j] += sc * Ax[p] * x[ Ai[p] ] ;
+    yj = 0;
+    for (p = c1 ; p < c2 ; p++)
+    {
+      yj += sc * Ax[p] * x[ Ai[p] ] ;
     }
+    y[j] += yj;
   }
 }
 
 // y = A*x
 static inline void multByA(const Work *w, const double *x, double *y){
   // assumes memory storage exists for y
-  
+
+  // 8/4/13 TODO:
+  //   Add w->At in CSR to the workspace
+  //   Will allow us to use multithreading for both A and At
+
   /* y = A*x */
   idxint p, j, n, m, *Ap, *Ai ;
   double *Ax ;
   n = w->n ; m = w->m; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
-  
+
   memset(y,0,m*sizeof(double));
-  
+
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
-    for (p = c1 ; p < c2 ; p++)        
-    {   
+    for (p = c1 ; p < c2 ; p++)
+    {
       y[Ai[p]] += Ax[p] * x[ j ] ;
     }
   }
@@ -134,22 +141,24 @@ static inline void multByA(const Work *w, const double *x, double *y){
 // y = A'*x
 static inline void multByATrans(const Work *w, const double *x, double *y){
   // assumes memory storage exists for y
-  
+
   /* y = A'*x */
   idxint p, j, n, *Ap, *Ai ;
-  double *Ax ;
+  double *Ax, yj ;
   n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
 
   idxint c1, c2;
-  
+
+  //#pragma omp parallel for private(p,c1,c2,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
-    y[j] = 0.0;
-    for (p = c1 ; p < c2 ; p++)        
-    {   
-      y[j] += Ax[p] * x[ Ai[p] ] ;
+    yj = 0.0;
+    for (p = c1 ; p < c2 ; p++)
+    {
+      yj += Ax[p] * x[ Ai[p] ] ;
     }
+    y[j] = yj;
   }
 }
 
@@ -181,14 +190,14 @@ static inline double calcPriResid(Work *w) {
     w->stilde[i] = w->s[i] - w->b[i];
   }
   accumByA(w, w->x, w->stilde);
-  
+
   // normalize by D
   for(i = 0; i < w->m; ++i) {
     w->stilde[i] /= w->D[i];
   }
-  
+
   // equiv to -(A*x + s - b) when alpha = 1
-  //addScaledArray(w->stilde, w->s, d->m, -1); 
+  //addScaledArray(w->stilde, w->s, d->m, -1);
 
   return calcNorm(w->stilde, w->m);
 }
@@ -198,13 +207,13 @@ static inline double calcDualResid(Work *w) {
   // assumes stilde allocates max(d->m,d->n) memory
   memcpy(w->stilde, w->c, (w->n)*sizeof(double));
   accumByATrans(w, w->y, w->stilde);
-  
+
   // normalize by E
   idxint i = 0;
   for(i = 0; i < w->n; ++i) {
     w->stilde[i] /= w->E[i];
   }
-  
+
   return calcNorm(w->stilde, w->n);
 }
 
@@ -221,19 +230,19 @@ static inline double calcDualObj(const Work *w) {
 
 // // x = b*a
 // void setAsScaledArray(double *x, const double * a,const double b,idxint len);
-// 
+//
 // // a*= b
 // void scaleArray(double * a,const double b,idxint len);
-// 
+//
 // // x'*y
 // double innerProd(const double * x, const double * y, idxint len);
-// 
+//
 // // ||v||_2^2
 // double calcNormSq(const double * v,idxint len);
-// 
+//
 // // ||v||_2
 // double calcNorm(const double * v,idxint len);
-// 
+//
 // // ||v||_inf
 // double calcNormInf(const double *v, idxint len);
 // // saxpy
@@ -246,18 +255,18 @@ static inline double calcDualObj(const Work *w) {
 // void decumByA(const Data *d, const double *x, double *y);
 // // y -= A'*x
 // void decumByATrans(const Data *d, const double *x, double *y);
-// 
+//
 // // norm(A*x + s - b, 'inf')/normA
 // double calcPriResid(const Data *d, Work *w);
 // // norm(-A*y - c, 'inf')/normB
 // double calcDualResid(const Data *d, Work *w);
 // // c'*x + b'*y
 // double calcSurrogateGap(const Data *d, Work *w);
-// 
+//
 // double calcCertPriResid(const Data *d, Work *w);
 // double calcCertDualResid(const Data *d, Work *w);
 // double calcCertPriObj(const Data *d, Work *w);
 // double calcCertDualObj(const Data *d, Work *w);
-// 
+//
 
 #endif
