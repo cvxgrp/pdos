@@ -1,7 +1,7 @@
 UNAME = $(shell uname -s)
 CC = gcc	# use GCC for openmp support
-CFLAGS = -g -Wall -pedantic -O3 -I. -DDLONG -DLDL_LONG -fopenmp
-LDFLAGS = -lm -lgomp
+CFLAGS = -g -Wall -pedantic -O3 -I. -DDLONG -DLDL_LONG
+LDFLAGS = -lm
 
 ifeq ($(UNAME), Darwin)
 	CFLAGS   += -std=c99

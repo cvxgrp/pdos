@@ -67,28 +67,30 @@ static inline void addScaledArray(double * a, const double * b, idxint n, const 
 }
 
 // y += alpha*A*x
-static inline void accumByScaledA(const Work *w, const double *x, const double sc, double *y){
+static inline void accumByScaledA(const Work *w, const double *x, const double sc, double *y, const int accum){
   // assumes memory storage exists for y
 
   /* y += A*x */
   idxint p, j, n, *Ap, *Ai ;
-  double *Ax ;
-  n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
+  double *Ax, yj ;
+  // use At to do the multiplication
+  n = w->m ; Ap = w->Atp ; Ai = w->Ati ; Ax = w->Atx ;
 
   idxint c1, c2;
-
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
+    yj = 0;
     for (p = c1 ; p < c2 ; p++)
     {
-      y[Ai[p]] += sc * Ax[p] * x[ j ] ;
+      yj += sc * Ax[p] * x[ Ai[p] ] ;
     }
+    y[j] = (accum) ? y[j] + yj : yj;
   }
 }
 
 // y += alpha*A'*x
-static inline void accumByScaledATrans(const Work *w, const double *x, const double sc, double *y){
+static inline void accumByScaledATrans(const Work *w, const double *x, const double sc, double *y, const int accum){
   // assumes memory storage exists for y
 
   /* y += A'*x */
@@ -98,7 +100,6 @@ static inline void accumByScaledATrans(const Work *w, const double *x, const dou
 
   idxint c1, c2;
 
-#pragma omp parallel for schedule(dynamic,1) private(p,j,c1,c2,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
@@ -107,7 +108,7 @@ static inline void accumByScaledATrans(const Work *w, const double *x, const dou
     {
       yj += sc * Ax[p] * x[ Ai[p] ] ;
     }
-    y[j] += yj;
+    y[j] = (accum) ? y[j] + yj : yj;
   }
 }
 
@@ -120,22 +121,7 @@ static inline void multByA(const Work *w, const double *x, double *y){
   //   Will allow us to use multithreading for both A and At
 
   /* y = A*x */
-  idxint p, j, n, m, *Ap, *Ai ;
-  double *Ax ;
-  n = w->n ; m = w->m; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
-
-  idxint c1, c2;
-
-  memset(y,0,m*sizeof(double));
-
-  for (j = 0 ; j < n ; j++)
-  {
-    c1 = Ap[j]; c2 = Ap[j+1];
-    for (p = c1 ; p < c2 ; p++)
-    {
-      y[Ai[p]] += Ax[p] * x[ j ] ;
-    }
-  }
+  accumByScaledA(w,x,1.0,y,0);
 }
 
 // y = A'*x
@@ -143,43 +129,27 @@ static inline void multByATrans(const Work *w, const double *x, double *y){
   // assumes memory storage exists for y
 
   /* y = A'*x */
-  idxint p, j, n, *Ap, *Ai ;
-  double *Ax, yj ;
-  n = w->n ; Ap = w->Ap ; Ai = w->Ai ; Ax = w->Ax ;
-
-  idxint c1, c2;
-
-#pragma omp parallel for schedule(dynamic, 1) private(p,j,c1,c2,yj)
-  for (j = 0 ; j < n ; j++)
-  {
-    c1 = Ap[j]; c2 = Ap[j+1];
-    yj = 0;
-    for (p = c1 ; p < c2 ; p++)
-    {
-      y[j] += Ax[p] * x[ Ai[p] ] ;
-    }
-    y[j] = yj;
-  }
+  accumByScaledATrans(w,x,1.0,y,0);
 }
 
 // y += A*x
 static inline void accumByA(const Work *w, const double *x, double *y) {
-  accumByScaledA(w,x,1.0,y);
+  accumByScaledA(w,x,1.0,y,1);
 }
 
 // y += A'*x
 static inline void accumByATrans(const Work *w, const double *x, double *y) {
-  accumByScaledATrans(w,x,1.0,y);
+  accumByScaledATrans(w,x,1.0,y,1);
 }
 
 // y -= A*x
 static inline void decumByA(const Work *w, const double *x, double *y) {
-  accumByScaledA(w,x,-1.0,y);
+  accumByScaledA(w,x,-1.0,y,1);
 }
 
 // y -= A'*x
 static inline void decumByATrans(const Work *w, const double *x, double *y) {
-  accumByScaledATrans(w,x,-1.0,y);
+  accumByScaledATrans(w,x,-1.0,y,1);
 }
 
 // norm(A*x + s - b, 'inf')/normA

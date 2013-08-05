@@ -249,7 +249,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
 
-  printf("nb: %f nc: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
+  printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
   w->lambda = calcNorm(w->b,w->m) / calcNorm(w->c,w->n) ;
 
   // set ratio of "x" space penalty (1e-6) to "s,y" space penatly (1)
@@ -262,8 +262,26 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   }
 
   // transpose the A matrix and store it
-	// cs * At = PDOS_calloc(1, sizeof(cs));
+  // first, store "A" in "cs" format
+	cs * A = PDOS_calloc(1, sizeof(cs));
+  A->m = w->m ;
+  A->n = w->n ;
+  A->nzmax = MAX (Anz, 1) ;
+  A->nz = -1 ; // in compressed column form
+  A->p = w->Ap;
+  A->i = w->Ai;
+  A->x = w->Ax;
 
+  // now transpose
+  cs * At = cs_transpose(A, 1);
+
+  w->Atx = At->x;
+  w->Ati = At->i;
+  w->Atp = At->p;
+
+  PDOS_free(At);  // "orphans" At->x, At->i, At->p, but they have been handed
+                  // off to w->Atx, w->Ati, and w->Atp
+  PDOS_free(A);
 
   return w;
 }
