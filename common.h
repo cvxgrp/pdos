@@ -262,7 +262,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   }
 
   // transpose the A matrix and store it
-	cs * At = PDOS_calloc(1, sizeof(cs));
+	// cs * At = PDOS_calloc(1, sizeof(cs));
 
 
   return w;

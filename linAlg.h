@@ -98,7 +98,7 @@ static inline void accumByScaledATrans(const Work *w, const double *x, const dou
 
   idxint c1, c2;
 
-#pragma omp parallel for private(p,c1,c2,yj)
+#pragma omp parallel for schedule(dynamic,1) private(p,j,c1,c2,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
@@ -149,14 +149,14 @@ static inline void multByATrans(const Work *w, const double *x, double *y){
 
   idxint c1, c2;
 
-  //#pragma omp parallel for private(p,c1,c2,yj)
+#pragma omp parallel for schedule(dynamic, 1) private(p,j,c1,c2,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
-    yj = 0.0;
+    yj = 0;
     for (p = c1 ; p < c2 ; p++)
     {
-      yj += Ax[p] * x[ Ai[p] ] ;
+      y[j] += Ax[p] * x[ Ai[p] ] ;
     }
     y[j] = yj;
   }
@@ -270,3 +270,6 @@ static inline double calcDualObj(const Work *w) {
 //
 
 #endif
+
+
+
