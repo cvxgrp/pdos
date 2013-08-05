@@ -1,4 +1,5 @@
 #include "pdos.h"
+#include <omp.h>
 #ifndef NDEBUG
 #include <assert.h>
 #endif
@@ -56,9 +57,21 @@ Sol * pdos(const Data * d, const Cone * k)
   if(d == NULL || k == NULL) {
     return NULL;
   }
-	idxint i, STATE = INDETERMINATE;
+  idxint i, STATE = INDETERMINATE;
   struct resid residuals = { -1, -1, -1, -1, -1 };
 
+  int nThreads, tid;
+  #pragma omp parallel private(tid) shared(nThreads)
+  {
+    tid = omp_get_thread_num();
+    if (tid == 0) {
+      nThreads = omp_get_num_threads();
+    }
+    printf("hello from %i\n", tid);
+  }
+  printf("nThreads = %i\n", nThreads);
+
+ 
 #ifndef NDEBUG
   // ensure that cone sizes match data size
   idxint cone_sz = 0;

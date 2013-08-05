@@ -77,6 +77,8 @@ static inline void accumByScaledA(const Work *w, const double *x, const double s
   n = w->m ; Ap = w->Atp ; Ai = w->Ati ; Ax = w->Atx ;
 
   idxint c1, c2;
+
+#pragma omp parallel for private(c1,c2,j,p,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
@@ -100,6 +102,7 @@ static inline void accumByScaledATrans(const Work *w, const double *x, const dou
 
   idxint c1, c2;
 
+#pragma omp parallel for private(c1,c2,j,p,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
