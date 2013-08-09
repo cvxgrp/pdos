@@ -63,47 +63,47 @@ Work * initWork(const Data* d, const Cone *k){
 }
 
 cs * formKKT(Work * w){
-	/* ONLY UPPER TRIANGULAR PART IS STUFFED
-	 * forms column compressed KKT matrix
-	 * assumes column compressed form A matrix
+  /* ONLY UPPER TRIANGULAR PART IS STUFFED
+   * forms column compressed KKT matrix
+   * assumes column compressed form A matrix
    *
    * forms upper triangular part of [-I A'; A I]
-	 */
-	idxint j, k, kk;
-	/* -I at top left */
+   */
+   idxint j, k, kk;
+  /* -I at top left */
   const idxint Anz = w->Ap[w->n];
-	const idxint Knzmax = w->m + w->n + Anz;
-	cs * K = cs_spalloc(w->m + w->n, w->m + w->n, Knzmax, 1, 1);
+  const idxint Knzmax = w->m + w->n + Anz;
+  cs * K = cs_spalloc(w->m + w->n, w->m + w->n, Knzmax, 1, 1);
   kk = 0;
-	for (k = 0; k < w->n; k++){
-		K->i[kk] = k;
-		K->p[kk] = k;
-		K->x[kk] = -1;
+  for (k = 0; k < w->n; k++){
+    K->i[kk] = k;
+    K->p[kk] = k;
+    K->x[kk] = -1;
     kk++;
-	}
-	/* A^T at top right : CCS: */
-	for (j = 0; j < w->n; j++) {
-		for (k = w->Ap[j]; k < w->Ap[j+1]; k++) {
-			K->p[kk] = w->Ai[k] + w->n;
-			K->i[kk] = j;
-			K->x[kk] = w->Ax[k];
+  }
+
+  /* A^T at top right : CCS: */
+  for (j = 0; j < w->n; j++) {
+    for (k = w->Ap[j]; k < w->Ap[j+1]; k++) {
+      K->p[kk] = w->Ai[k] + w->n;
+      K->i[kk] = j;
+      K->x[kk] = w->Ax[k];
       kk++;
-		}
-	}
-	/* I at bottom right */
-	for (k = 0; k < w->m; k++){
-		K->i[kk] = k + w->n;
-		K->p[kk] = k + w->n;
-		K->x[kk] = 1;
+    }
+  }
+  /* I at bottom right */
+  for (k = 0; k < w->m; k++){
+	K->i[kk] = k + w->n;
+	K->p[kk] = k + w->n;
+	K->x[kk] = 1;
     kk++;
-	}
+  }
   // assert kk == Knzmax
-	K->nz = Knzmax;
-	cs * K_cs = cs_compress(K);
-	cs_spfree(K);
+  K->nz = Knzmax;
+  cs * K_cs = cs_compress(K);
+  cs_spfree(K);
   return(K_cs);
 }
-
 
 void factorize(Work * w){
   static timer KKT_timer;
@@ -133,11 +133,14 @@ void factorize(Work * w){
   // permute the KKT matrix
   cs * C = cs_symperm(K, Pinv, 1);
 
+  printf("LDL factor\n");
   // perform the LDL factorization
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
 
   if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq(&KKT_timer));
-  cs_spfree(C);cs_spfree(K);PDOS_free(Pinv);PDOS_free(info);
+  printf("done factoring... freeing stuff...\n");
+  cs_spfree(C);printf("freed C\n");cs_spfree(K);printf("freed K\n");
+  PDOS_free(Pinv);printf("freed Pinv\n");PDOS_free(info);printf("freed info\n");
 }
 
 void choleskyInit(const cs * A, idxint P[], double **info) {
@@ -151,16 +154,27 @@ void choleskyInit(const cs * A, idxint P[], double **info) {
 
 void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D)
 {
-	(*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
-	idxint Parent[A->n], Lnz[A->n], Flag[A->n], Pattern[A->n];
+	printf("factoring...\n");
+    printf("A->n = %ld\n", A->n);
+    printf("L = %x\n", L);
+    printf("*L = %x\n", *L);
+    (*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
+	printf("malloc'd?\n");
+    idxint Parent[A->n]; printf("parent alloc'd\n");
+    idxint Lnz[A->n]; printf("Lnz alloc'd\n");
+    idxint Flag[A->n]; printf("Flag alloc'd\n");
+    idxint Pattern[A->n]; printf("Pattern alloc'd\n");
 	double Y[A->n];
+    printf("segfault'd....\n");
 
+    printf("symbolic ldl\n");
 #ifdef LDL_LONG
 	ldl_l_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 #else
 	ldl_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 #endif
 
+    printf("numeric ldl\n");
 	(*L)->nzmax = *((*L)->p + A->n);
   (*L)->x = (double *) PDOS_malloc((*L)->nzmax * sizeof(double));
 	(*L)->i =    (idxint *) PDOS_malloc((*L)->nzmax * sizeof(idxint));

@@ -69,7 +69,6 @@ static inline void addScaledArray(double * a, const double * b, idxint n, const 
 // y += alpha*A*x
 static inline void accumByScaledA(const Work *w, const double *x, const double sc, double *y, const int accum){
   // assumes memory storage exists for y
-
   /* y += A*x */
   idxint p, j, n, *Ap, *Ai ;
   double *Ax, yj ;
@@ -78,7 +77,7 @@ static inline void accumByScaledA(const Work *w, const double *x, const double s
 
   idxint c1, c2;
 
-#pragma omp parallel for private(c1,c2,j,p,yj)
+//#pragma omp parallel for private(c1,c2,j,p,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];
@@ -102,7 +101,7 @@ static inline void accumByScaledATrans(const Work *w, const double *x, const dou
 
   idxint c1, c2;
 
-#pragma omp parallel for private(c1,c2,j,p,yj)
+//#pragma omp parallel for private(c1,c2,j,p,yj)
   for (j = 0 ; j < n ; j++)
   {
     c1 = Ap[j]; c2 = Ap[j+1];

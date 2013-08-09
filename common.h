@@ -260,10 +260,10 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   for( i=0; i < Anz; ++i ) {
     w->Ax[i] *= SQRT_RATIO;
   }
-
+  
   // transpose the A matrix and store it
   // first, store "A" in "cs" format
-	cs * A = PDOS_calloc(1, sizeof(cs));
+  cs * A = PDOS_calloc(1, sizeof(cs));
   A->m = w->m ;
   A->n = w->n ;
   A->nzmax = MAX (Anz, 1) ;
@@ -278,7 +278,6 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   w->Atx = At->x;
   w->Ati = At->i;
   w->Atp = At->p;
-
   PDOS_free(At);  // "orphans" At->x, At->i, At->p, but they have been handed
                   // off to w->Atx, w->Ati, and w->Atp
   PDOS_free(A);

@@ -1,5 +1,4 @@
 #include "pdos.h"
-#include <omp.h>
 #ifndef NDEBUG
 #include <assert.h>
 #endif
@@ -60,18 +59,6 @@ Sol * pdos(const Data * d, const Cone * k)
   idxint i, STATE = INDETERMINATE;
   struct resid residuals = { -1, -1, -1, -1, -1 };
 
-  int nThreads, tid;
-  #pragma omp parallel private(tid) shared(nThreads)
-  {
-    tid = omp_get_thread_num();
-    if (tid == 0) {
-      nThreads = omp_get_num_threads();
-    }
-    printf("hello from %i\n", tid);
-  }
-  printf("nThreads = %i\n", nThreads);
-
- 
 #ifndef NDEBUG
   // ensure that cone sizes match data size
   idxint cone_sz = 0;
@@ -94,8 +81,9 @@ Sol * pdos(const Data * d, const Cone * k)
   }
 
   // initialize workspace, allocates memory for necessary computations
-	Work * w = initWork(d, k);
+  Work * w = initWork(d, k);
 
+  printf("done initing work?\n");
   if(p->VERBOSE) {
     PDOS_printf("lambda: %5.3e\n\n", w->lambda);
 
@@ -105,7 +93,7 @@ Sol * pdos(const Data * d, const Cone * k)
 
   for (i=0; i < p->MAX_ITERS; ++i){
     // Pi_P
-		projectLinSys(w);
+	projectLinSys(w);
 
     /* overrelaxation */
     relax(w);
