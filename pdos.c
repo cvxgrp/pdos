@@ -83,7 +83,6 @@ Sol * pdos(const Data * d, const Cone * k)
   // initialize workspace, allocates memory for necessary computations
   Work * w = initWork(d, k);
 
-  printf("done initing work?\n");
   if(p->VERBOSE) {
     PDOS_printf("lambda: %5.3e\n\n", w->lambda);
 

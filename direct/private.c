@@ -133,14 +133,12 @@ void factorize(Work * w){
   // permute the KKT matrix
   cs * C = cs_symperm(K, Pinv, 1);
 
-  printf("LDL factor\n");
   // perform the LDL factorization
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
 
   if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq(&KKT_timer));
-  printf("done factoring... freeing stuff...\n");
-  cs_spfree(C);printf("freed C\n");cs_spfree(K);printf("freed K\n");
-  PDOS_free(Pinv);printf("freed Pinv\n");PDOS_free(info);printf("freed info\n");
+  cs_spfree(C);cs_spfree(K);
+  PDOS_free(Pinv);PDOS_free(info);
 }
 
 void choleskyInit(const cs * A, idxint P[], double **info) {
@@ -154,27 +152,19 @@ void choleskyInit(const cs * A, idxint P[], double **info) {
 
 void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D)
 {
-	printf("factoring...\n");
-    printf("A->n = %ld\n", A->n);
-    printf("L = %x\n", L);
-    printf("*L = %x\n", *L);
-    (*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
-	printf("malloc'd?\n");
-    idxint Parent[A->n]; printf("parent alloc'd\n");
-    idxint Lnz[A->n]; printf("Lnz alloc'd\n");
-    idxint Flag[A->n]; printf("Flag alloc'd\n");
-    idxint Pattern[A->n]; printf("Pattern alloc'd\n");
-	double Y[A->n];
-    printf("segfault'd....\n");
+  (*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
+  idxint Parent[A->n];
+  idxint Lnz[A->n];
+  idxint Flag[A->n];
+  idxint Pattern[A->n];
+  double Y[A->n];
 
-    printf("symbolic ldl\n");
 #ifdef LDL_LONG
 	ldl_l_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 #else
 	ldl_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 #endif
 
-    printf("numeric ldl\n");
 	(*L)->nzmax = *((*L)->p + A->n);
   (*L)->x = (double *) PDOS_malloc((*L)->nzmax * sizeof(double));
 	(*L)->i =    (idxint *) PDOS_malloc((*L)->nzmax * sizeof(idxint));

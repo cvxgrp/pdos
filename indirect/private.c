@@ -33,7 +33,7 @@ static inline void cgCustom(Work *w){
   // recall that s^k = b - A*x^k
   const idxint MAX_ITERS = w->params->CG_MAX_ITS;
   const double TOL = w->params->CG_TOL;
-  //const idxint VERBOSE = w->params->VERBOSE;
+  const idxint VERBOSE = w->params->VERBOSE;
 
 	/* warm start cg with previous x */
 	idxint i = 0;
@@ -92,11 +92,11 @@ static inline void cgCustom(Work *w){
   		qsold_sq = qsnew_sq;
   	}
   }
-// #ifdef DLONG
-//   if (VERBOSE) PDOS_printf("terminating cg residual = %4f, took %li itns\n",sqrt(qsnew_sq),i);
-// #else
-//   if (VERBOSE) PDOS_printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
-// #endif
+#ifdef DLONG
+  if (VERBOSE) PDOS_printf("terminating cg residual = %4f, took %li itns\n",sqrt(qsnew_sq),i);
+#else
+  if (VERBOSE) PDOS_printf("terminating cg residual = %4f, took %i itns\n",sqrt(qsnew_sq),i);
+#endif
 }
 
 void projectLinSys(Work * w){
