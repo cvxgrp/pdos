@@ -3,9 +3,18 @@ Primal Dual Operator Splitting for Conic Optimization
 Brendan O'Donoghue, Eric Chu, and Stephen Boyd
 ----------------------------------------------
 
+This is an experimental branch of the PDOS solver for shared-memory parallel
+machines. It uses [Pardiso](http://www.pardiso-project.org/) to solve the
+linear systems. It has only been tested on Linux and lacks the Python and
+Matlab interface of its simpler implementation.
+
+To properly scale the solver on a distributed-memory machine, we encourage 
+the use of [Clique](https://github.com/poulson/Clique) and
+[Elemental](https://github.com/elemental/Elemental).
+
 This code provides a solver for second-order cone problems. It is an
 implementation of the algorithm described in `pdos.pdf`. It provides both a
-direct and an indirect solver in the form of a static library for inclusion
+direct and an indirect solver in the form of a dynamic library for inclusion
 in other projects.
 
 It simultaneously solves the primal cone program
@@ -24,35 +33,16 @@ where `K` is a product cone of zero cones, linear cones `{ x | x >= 0 }`, and
 second-order cones `{ (t,x) | ||x||_2 <= t }`; `K^*` is its dual cone. The
 dual of the zero cone is the free cone; all other cones are self-dual.
 
-A reference Matlab implementation is included under the `matlab` folder; it is called `pdos.m`.
+A reference Matlab implementation is included under the `matlab` folder; it 
+is called `pdos.m`.
 
 Installing
 ----------
-Typing `make` at the command line should do the trick. It will produce two libaries, `libpdosdir.a` and `libpdosindir.a` found under the `lib` folder. As a byproduct, it will also produce two demo binaries under the `bin` folder called `demo_direct` and `demo_indirect`.
+Typing `make` at the command line should do the trick. It will produce two static
+libaries, `libpdosdir.so` and `libpdosindir.so` found under the `lib` folder. 
+As a byproduct, it will also produce two demo binaries under the `bin` folder called `demo_direct` and `demo_indirect`.
 
 Let us know if the build process fails for you.
-
-### Compiling a Matlab mex file
-Running `make_pdos` in Matlab under the `matlab` folder will produce two mex files, `pdos_direct` and `pdos_indirect`.
-
-Remember to include the `matlab` directory in your Matlab path if you wish to use the mex file in your Matlab code. The calling sequence is
-
-    [x,s,y,status] = pdos_direct(data,cones,params)
-
-Type `help pdos_direct` at the Matlab prompt to see its documentation.
-
-### Installing a CVX solver
-For users familiar with [CVX](http://cvxr.com), we supply a CVX shim which can be easily installed by invoking the following in the Matlab command line under the `matlab` directory.
-
-    >> cvx_install_pdos
-    
-You can select the PDOS solver (for SOCPs) with CVX as follows 
-
-    >> cvx_solver 'pdos'
-    >> cvx_begin
-    >> ...
-    >> cvx_end
- 
 ### Compiling a Python extension
 If you have no trouble with `make`, then this should be straightforward as well. It requires [CVXOPT](http://cvxopt.org) for use in Python. The relevant files are under the `python` directory. The command
 
@@ -155,17 +145,4 @@ variable `qsize` giving its length).
 
 Scalability
 -----------
-Note that this code is merely meant as an implementation of the ideas in our
-paper. The actual code does not use more than a single CPU. Nevertheless, for
-problems that fit in memory on a single computer, this code will (attempt to)
-solve them.
-
-To scale this solver, one must either provide a distributed solver for linear
-systems (c.f., Jack Poulson's Elemental) or a distributed matrix-vector multiplication, perhaps by way of CUDA. 
-
-
-Known Issues
-------------
-* When using older versions of OSX's built-in version of Python, `setup.py` may attempt to build Power PC versions of the Python extensions. If you upgraded to Xcode 4, then support for Power PC has been removed. In that case, the build process may complain about the Power PC architecture. Simply use the following instead:
-
-    ARCHFLAGS='-arch i386 -arch x86_64' python setup.py install
+Tested on .... results....
