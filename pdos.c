@@ -82,6 +82,11 @@ Sol * pdos(const Data * d, const Cone * k)
 
   // initialize workspace, allocates memory for necessary computations
   Work * w = initWork(d, k);
+  if(!w->p) {
+    PDOS_printf("Error with Pardiso license.\n");
+    freeWork(&w);
+    return NULL;
+  }
 
   if(p->VERBOSE) {
     PDOS_printf("lambda: %5.3e\n\n", w->lambda);

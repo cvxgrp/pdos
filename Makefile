@@ -11,48 +11,30 @@ LDFLAGS += $(PATH_TO_PARDISO)/libpardiso412-GNU450-X86-64.so -fopenmp
 LDFLAGS += $(PATH_TO_BLAS)/libopenblas.so
 
 OBJECTS = pdos.o util.o cones.o cs.o
-AMD_SOURCE = $(wildcard direct/amd_*.c)
-DIRECT_OBJECTS = direct/ldl.o $(AMD_SOURCE:.c=.o)
-TARGETS = demo_direct demo_indirect
+TARGETS = pdos 
 
 .PHONY: default
-default: lib/libpdos.so bin/pdos
+default: lib/libpdos.a bin/pdos
 
 pdos.o 		: pdos.h globals.h common.h linAlg.h
 util.o		: util.h pdos.h
 cones.o		: cones.h globals.h
-cs.o		: cs.h globals.h
+cs.o		  : cs.h globals.h
 
-direct/private.o	: direct/private.h common.h
-direct/ldl.o		: direct/ldl.h
-direct/amd_1.o		: direct/amd_internal.h direct/amd.h
-direct/amd_2.o		: direct/amd_internal.h direct/amd.h
-direct/amd_aat.o	: direct/amd_internal.h direct/amd.h
-direct/amd_control.o	: direct/amd_internal.h direct/amd.h
-direct/amd_defaults.o 	: direct/amd_internal.h direct/amd.h
-direct/amd_dump.o	: direct/amd_internal.h direct/amd.h
-direct/amd_global.o	: direct/amd_internal.h direct/amd.h
-direct/amd_info.o	: direct/amd_internal.h direct/amd.h
-direct/amd_order.o	: direct/amd_internal.h direct/amd.h
-direct/amd_post_tree.o	: direct/amd_internal.h direct/amd.h
-direct/amd_postorder.o	: direct/amd_internal.h direct/amd.h
-direct/amd_preprocess.o	: direct/amd_internal.h direct/amd.h
-direct/amd_valid.o	: direct/amd_internal.h direct/amd.h
+pardiso/private.o	    : pardiso/private.h common.h
 
-indirect/private.o	: indirect/private.h common.h
-
-lib/libpdos.so: $(OBJECTS) direct/private.o  $(DIRECT_OBJECTS)
+lib/libpdos.a: $(OBJECTS) pardiso/private.o  $(DIRECT_OBJECTS)
 	mkdir -p lib
-	$(ARCHIVE) lib/libpdosdir.a $^
-	- $(RANLIB) lib/libpdosdir.a
+	$(ARCHIVE) lib/libpdos.a $^
+	- $(RANLIB) lib/libpdos.a
 
-bin/pdos: run_pdos.c lib/libpdosdir.a
+bin/pdos: run_pdos.c lib/libpdos.a
 	mkdir -p bin
 	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data/portfolio_test_01_10x100\"" -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean purge
 clean:
-	@rm -rf $(TARGETS) $(OBJECTS) $(DIRECT_OBJECTS) direct/private.o indirect/private.o
+	@rm -rf $(TARGETS) $(OBJECTS) pardiso/private.o
 
 purge: clean
 	@rm -rf bin lib
