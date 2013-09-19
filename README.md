@@ -8,10 +8,15 @@ machines. It uses [Pardiso](http://www.pardiso-project.org/) to solve the
 linear systems. It has only been tested on Linux and lacks the Python and
 Matlab interface of its simpler implementation.
 
+It uses [OpenBLAS](http://github.com/xianyi/OpenBLAS) for Pardiso's dense
+linear algebra.
+
 To properly scale the solver on a distributed-memory machine, we encourage 
 the use of [Clique](https://github.com/poulson/Clique) and
 [Elemental](https://github.com/elemental/Elemental).
 
+What is PDOS
+============
 This code provides a solver for second-order cone problems. It is an
 implementation of the algorithm described in `pdos.pdf`. It provides both a
 direct and an indirect solver in the form of a dynamic library for inclusion

@@ -5,10 +5,56 @@
 #define DEMO_PATH "../data/portfolio_test_01_10x100"
 #endif
 
+/* PARDISO prototype. */
+void pardisoinit (void   *, int *,   int *, int *, double *, int *);
+void pardiso     (void   *, int *,   int *, int *,    int *, int *,
+                  double *, int *,   int *, int *,   int *, int *,
+                  int *, double *, double *, int *, double *);
+/*void pardiso_chkmatrix_z  (int *, int *, double *, int *, int *, int *);
+void pardiso_chkvec_z     (int *, int *, double *, int *);
+void pardiso_printstats_z (int *, int *, double *, int *, int *, int *,
+                           double *, int *);
+*/
 static timer PDOS_timer;
 
 int main(int argc, char **argv)
 {
+  /* Internal solver memory pointer pt,                  */
+  /* 32-bit: int pt[64]; 64-bit: long int pt[64]         */
+  /* or void *pt[64] should be OK on both architectures  */ 
+  void    *pt[64]; 
+
+  /* Pardiso control parameters. */
+  int      iparm[64];
+  double   dparm[64];
+  int      maxfct, mnum, phase, error, msglvl, solver;
+
+  /* Number of processors. */
+  int    num_procs;
+  int    mtype = -2;        /* Real symmetric indefinite matrix */
+ 
+  error = 0;
+  solver = 0; /* use sparse direct solver */
+
+
+  pardisoinit (pt,  &mtype, &solver, iparm, dparm, &error); 
+
+  if (error != 0) 
+  {
+    if (error == -10 )
+      printf("No license file found \n");
+    if (error == -11 )
+      printf("License is expired \n");
+    if (error == -12 )
+      printf("Wrong username or hostname \n");
+    return 1; 
+  }
+  else
+    printf("[PARDISO]: License check was successful ... \n");
+    
+
+
+
   tic(&PDOS_timer);
   FILE * fp;
   if(open_file(argc, argv, 1, DEMO_PATH, &fp)==-1) return -1;
