@@ -41,13 +41,14 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
 
       // find the maximum in this column
       cone_idx = j;
-      while ( cone_idx < Anz &&
+      while ( cone_idx < Anz &&     // ensure we stay within array
               ind <= d->Ai[cone_idx] && 
               d->Ai[cone_idx] < ind + k->q[cone]) 
       {
         max_val = MAX(max_val, fabs(w->Ax[cone_idx]));
         cone_idx++;
       }
+      
       // set all the nonzeros to the maximum value
       // also set all the rows (Ai) to be at ind, that is, this row contains
       // everything we need, the other n-1 rows are just 0.

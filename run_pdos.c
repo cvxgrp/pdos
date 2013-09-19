@@ -4,10 +4,7 @@
 #ifndef DEMO_PATH
 #define DEMO_PATH "../data/portfolio_test_01_10x100"
 #endif
-<<<<<<< HEAD
-=======
 
->>>>>>> started pardiso branch
 static timer PDOS_timer;
 
 int main(int argc, char **argv)
@@ -39,7 +36,6 @@ void read_in_data(FILE * fp, Data ** d, Cone ** k){
 	fread(&((*k)->f), sizeof(idxint), 1, fp);
 	fread(&((*k)->l), sizeof(idxint), 1, fp);
 	fread(&((*k)->qsize), sizeof(idxint), 1, fp);
-<<<<<<< HEAD
 
   (*k)->q = malloc(sizeof(idxint)*(*k)->qsize);
   fread((*k)->q, sizeof(idxint), (*k)->qsize, fp);
@@ -50,18 +46,6 @@ void read_in_data(FILE * fp, Data ** d, Cone ** k){
   (*d)->c = malloc(sizeof(double)*(*d)->n);
   fread((*d)->c, sizeof(double), (*d)->n, fp);
 
-=======
-  
-  (*k)->q = malloc(sizeof(idxint)*(*k)->qsize);
-  fread((*k)->q, sizeof(idxint), (*k)->qsize, fp);
-  
-  (*d)->b = malloc(sizeof(double)*(*d)->m);
-  fread((*d)->b, sizeof(double), (*d)->m, fp);
-  
-  (*d)->c = malloc(sizeof(double)*(*d)->n);
-  fread((*d)->c, sizeof(double), (*d)->n, fp);
-  
->>>>>>> started pardiso branch
   fread(&((*d)->p->MAX_ITERS), sizeof(idxint), 1, fp);
   fread(&((*d)->p->CG_MAX_ITS), sizeof(idxint), 1, fp);
   fread(&((*d)->p->ALPHA), sizeof(double), 1, fp);
