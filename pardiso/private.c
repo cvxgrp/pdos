@@ -33,6 +33,7 @@ Work * initWork(const Data *d, const Cone *k){
   w->p->mtype = -2;
   w->p->error = 0;
   w->p->solver = 0; /* use sparse direct solver */
+  // w->p->solver = 1; /* use iterative solver */
   w->p->n = w->m + w->n;
   w->p->tmp = PDOS_calloc(w->p->n, sizeof(double));
 
@@ -57,6 +58,8 @@ Work * initWork(const Data *d, const Cone *k){
 
   pardisoinit (w->p->pt,  &(w->p->mtype), &(w->p->solver), w->p->iparm, w->p->dparm, &(w->p->error)); 
 
+  // w->p->dparm[0] = 20; // MAX CG ITS
+  
   PDOS_printf("Pardiso init took %0.4fs\n", tocq(&init_timer));
 
   if (w->p->error != 0) 
@@ -91,7 +94,8 @@ Work * initWork(const Data *d, const Cone *k){
 /*     all memory that is necessary for the factorization.              */
 /* -------------------------------------------------------------------- */
   w->p->phase = 12; 
-    
+  //w->p->phase = 11; // if iterative 
+  w->p->iparm[27] = 1;  /* parallel metis reordering if 1 */   
   pardiso (w->p->pt, &(w->p->maxfct), &(w->p->mnum), &(w->p->mtype), 
            &(w->p->phase), &(w->p->n), w->p->U, w->p->Ui, w->p->Uj, 
            &idum, &nrhs, w->p->iparm, &(w->p->msglvl), &ddum, &ddum, 
@@ -108,6 +112,14 @@ Work * initWork(const Data *d, const Cone *k){
   PDOS_printf("Factorization time: %0.4fs\n\n", tocq(&init_timer));
 
   w->p->msglvl = 0; // make quiet
+
+  // get ready to solve
+  w->p->phase = 33;
+  
+  w->p->iparm[5] = 1;       /* write solution to b (rhs) */
+  w->p->iparm[7] = 0;       /* Max numbers of iterative refinement steps. */
+  w->p->iparm[20] = 0;      /* only use 1x1 diagonal pivoting */
+
   return w;
 }
 
@@ -208,15 +220,14 @@ static inline void prepArgument(Work *w) {
 
 
 void projectLinSys(Work * w){
+  //static timer lin_timer;
   // this only modifies w->s = s + y - b
+  //tic(&lin_timer);
   prepArgument(w);
+  //toc(&lin_timer);
 
+  //tic(&lin_timer);
   // solve the linear system
-  w->p->phase = 33;
-  
-  w->p->iparm[5] = 1;       /* write solution to b (rhs) */
-  w->p->iparm[7] = 0;       /* Max numbers of iterative refinement steps. */
-
   static int idum;
   static const int nrhs = 1;
 
@@ -225,15 +236,27 @@ void projectLinSys(Work * w){
            &idum, &nrhs, w->p->iparm, &(w->p->msglvl), w->x, w->p->tmp,
            &(w->p->error), w->p->dparm);
 
-  if (w->p->error != 0) {
+  if (w->p->error != 0 &&
+      w->p->error != -100 &&  /* for hitting max iters */
+      w->p->error != -101)
+  {
     PDOS_printf("ERROR during solution: %d\n", w->p->error);
     exit(3);
   }
+  //toc(&lin_timer);
 
+  //tic(&lin_timer);
+  /* now, stilde contains b - v - A*x,
+   * where v = s + lambda * y. 
+   * To recover stilde = b - A*x, we simply add "v"
+   * to the solution.
+   */
   // stilde = b - A*x
-  memcpy(w->stilde, w->b, w->m*sizeof(double));
-
-  // stilde -= A*x
-  decumByA(w, w->x, w->stilde);
+  static idxint i = 0;
+  for (i = 0; i < w->m; i++) {
+    // set stilde = (b - (s + lambda*y))
+    w->stilde[i] += (w->s[i] + w->lambda*w->y[i]);
+  }
+  //toc(&lin_timer);
 }
 
