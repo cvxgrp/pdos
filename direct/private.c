@@ -174,11 +174,11 @@ void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D
 #else
 	ldl_numeric(A->n, A->p, A->i, A->x, (*L)->p, Parent, Lnz, (*L)->i, (*L)->x, *D, Y, Pattern, Flag, P, Pinv);
 #endif
-  free(Parent);
-  free(Lnz);
-  free(Flag);
-  free(Pattern);
-  free(Y);
+  PDOS_free(Parent);
+  PDOS_free(Lnz);
+  PDOS_free(Flag);
+  PDOS_free(Pattern);
+  PDOS_free(Y);
 }
 
 void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[])
