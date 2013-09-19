@@ -36,16 +36,16 @@ void read_in_data(FILE * fp, Data ** d, Cone ** k){
 	fread(&((*k)->f), sizeof(idxint), 1, fp);
 	fread(&((*k)->l), sizeof(idxint), 1, fp);
 	fread(&((*k)->qsize), sizeof(idxint), 1, fp);
-  
+
   (*k)->q = malloc(sizeof(idxint)*(*k)->qsize);
   fread((*k)->q, sizeof(idxint), (*k)->qsize, fp);
-  
+
   (*d)->b = malloc(sizeof(double)*(*d)->m);
   fread((*d)->b, sizeof(double), (*d)->m, fp);
-  
+
   (*d)->c = malloc(sizeof(double)*(*d)->n);
   fread((*d)->c, sizeof(double), (*d)->n, fp);
-  
+
   fread(&((*d)->p->MAX_ITERS), sizeof(idxint), 1, fp);
   fread(&((*d)->p->CG_MAX_ITS), sizeof(idxint), 1, fp);
   fread(&((*d)->p->ALPHA), sizeof(double), 1, fp);
@@ -57,13 +57,13 @@ void read_in_data(FILE * fp, Data ** d, Cone ** k){
 
   idxint Anz;
   fread(&Anz, sizeof(idxint), 1, fp);
-  
-	(*d)->Ai = malloc(sizeof(idxint)*Anz);
+
+  (*d)->Ai = malloc(sizeof(idxint)*Anz);
   fread((*d)->Ai, sizeof(idxint), Anz, fp);
-  
+
   (*d)->Ap = malloc(sizeof(idxint)*((*d)->n+1));
   fread((*d)->Ap, sizeof(idxint), (*d)->n+1, fp);
-  
+
   (*d)->Ax = malloc(sizeof(double)*Anz);
   fread((*d)->Ax, sizeof(double), Anz, fp);
 

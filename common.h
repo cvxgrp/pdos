@@ -23,6 +23,8 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
   //         w->c  contains all of d->c
   idxint i, j, ind, cone, cone_idx;
   double max_val;
+  idxint Anz = d->Ap[d->n];
+  
 
   for(i = 0; i < d->n; ++i) { // cols
     ind = k->f + k->l;
@@ -40,15 +42,22 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
 
       // find the maximum in this column
       cone_idx = j;
-      while (ind <= d->Ai[cone_idx] && d->Ai[cone_idx] < ind + k->q[cone]) {
+      while ( (cone_idx < Anz) &&  // ensure we stay within array
+              (ind <= d->Ai[cone_idx]) &&
+              (d->Ai[cone_idx] < (ind + k->q[cone])) ) 
+      {
         max_val = MAX(max_val, fabs(w->Ax[cone_idx]));
         cone_idx++;
       }
+      
       // set all the nonzeros to the maximum value
       // also set all the rows (Ai) to be at ind, that is, this row contains
       // everything we need, the other n-1 rows are just 0.
       // this makes duplicates, but doesn't matter
-      while (ind <= d->Ai[j] && d->Ai[j] < ind + k->q[cone]) {
+      while ( (j < Anz) &&
+              (ind <= d->Ai[j]) &&
+              (d->Ai[j] < (ind + k->q[cone])) ) 
+      {
         w->Ax[j] = max_val;
         w->Ai[j] = ind;
         j++;
