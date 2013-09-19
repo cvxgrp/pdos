@@ -153,11 +153,11 @@ void choleskyInit(const cs * A, idxint P[], double **info) {
 void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D)
 {
   (*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
-  idxint Parent[A->n];
-  idxint Lnz[A->n];
-  idxint Flag[A->n];
-  idxint Pattern[A->n];
-  double Y[A->n];
+  idxint *Parent = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  idxint *Lnz = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  idxint *Flag = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  idxint *Pattern = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  double *Y = (idxint *) PDOS_malloc(A->n * sizeof(double));
 
 #ifdef LDL_LONG
 	ldl_l_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
@@ -174,6 +174,8 @@ void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D
 #else
 	ldl_numeric(A->n, A->p, A->i, A->x, (*L)->p, Parent, Lnz, (*L)->i, (*L)->x, *D, Y, Pattern, Flag, P, Pinv);
 #endif
+  PDOS_free(Parent); PDOS_free(Lnz); PDOS_free(Flag);
+  PDOS_free(Pattern); PDOS_free(Y);
 }
 
 void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[])
