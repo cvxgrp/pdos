@@ -158,16 +158,15 @@ void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D
   idxint *Flag = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   idxint *Pattern = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   double *Y = (idxint *) PDOS_malloc(A->n * sizeof(double));
-
 #ifdef LDL_LONG
 	ldl_l_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 #else
 	ldl_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 #endif
 
-	(*L)->nzmax = *((*L)->p + A->n);
+  (*L)->nzmax = *((*L)->p + A->n);
   (*L)->x = (double *) PDOS_malloc((*L)->nzmax * sizeof(double));
-	(*L)->i =    (idxint *) PDOS_malloc((*L)->nzmax * sizeof(idxint));
+  (*L)->i =    (idxint *) PDOS_malloc((*L)->nzmax * sizeof(idxint));
   *D  = (double *) PDOS_malloc(A->n * sizeof(double));
 #ifdef LDL_LONG
 	ldl_l_numeric(A->n, A->p, A->i, A->x, (*L)->p, Parent, Lnz, (*L)->i, (*L)->x, *D, Y, Pattern, Flag, P, Pinv);
