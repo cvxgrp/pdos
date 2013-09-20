@@ -24,7 +24,7 @@ Work * initWork(const Data *d, const Cone *k){
   // private indirect method initialization
   tic(&init_timer);
   Work * w = commonWorkInit(d,k);
-  PDOS_printf("Common work initialization took %0.4fs\n", tocq(&init_timer));
+  PDOS_printf("Common work initialization took %0.8fs\n", tocq(&init_timer));
 
   tic(&init_timer);
   w->p = PDOS_malloc(sizeof(Priv));
@@ -52,15 +52,15 @@ Work * initWork(const Data *d, const Cone *k){
   w->p->maxfct = 1;		/* Maximum number of numerical factorizations.  */
   w->p->mnum   = 1;         /* Which factorization to use. */
     
-  w->p->msglvl = 1;         /* Print statistical information  */
+  w->p->msglvl = 0;         /* Print statistical information  */
 
   formKKT(w); 
 
   pardisoinit (w->p->pt,  &(w->p->mtype), &(w->p->solver), w->p->iparm, w->p->dparm, &(w->p->error)); 
 
   // w->p->dparm[0] = 20; // MAX CG ITS
-  
-  PDOS_printf("Pardiso init took %0.4fs\n", tocq(&init_timer));
+
+  PDOS_printf("Pardiso init took %0.8fs\n", tocq(&init_timer));
 
   if (w->p->error != 0) 
   {
@@ -77,7 +77,8 @@ Work * initWork(const Data *d, const Cone *k){
     PDOS_printf("[PARDISO]: License check was successful ... \n");
 
   int nrhs = 1;
-  int idum; double ddum; 
+  int idum; double ddum;
+/*
 #ifndef NDEBUG 
   tic(&init_timer);
   double *b = PDOS_calloc(w->p->n, sizeof(double));
@@ -86,7 +87,7 @@ Work * initWork(const Data *d, const Cone *k){
   PDOS_printf("  ERROR CODE: %d\n", w->p->error);
   PDOS_free(b);
 #endif
-
+*/
   /* now, perform numerical factorization */
   tic(&init_timer); 
 /* -------------------------------------------------------------------- */
@@ -95,7 +96,7 @@ Work * initWork(const Data *d, const Cone *k){
 /* -------------------------------------------------------------------- */
   w->p->phase = 12; 
   //w->p->phase = 11; // if iterative 
-  w->p->iparm[27] = 1;  /* parallel metis reordering if 1 */   
+  //w->p->iparm[27] = 1;  /* parallel metis reordering if 1 */   
   pardiso (w->p->pt, &(w->p->maxfct), &(w->p->mnum), &(w->p->mtype), 
            &(w->p->phase), &(w->p->n), w->p->U, w->p->Ui, w->p->Uj, 
            &idum, &nrhs, w->p->iparm, &(w->p->msglvl), &ddum, &ddum, 
@@ -106,10 +107,9 @@ Work * initWork(const Data *d, const Cone *k){
       freePriv(w);
       return w;
   }
-  PDOS_printf("Reordering completed ... \n");
   PDOS_printf("Number of nonzeros in factors  = %d\n", w->p->iparm[17]);
   PDOS_printf("Number of factorization MFLOPS = %d\n", w->p->iparm[18]);
-  PDOS_printf("Factorization time: %0.4fs\n\n", tocq(&init_timer));
+  PDOS_printf("Factorization time: %0.8fs\n\n", tocq(&init_timer));
 
   w->p->msglvl = 0; // make quiet
 
@@ -118,7 +118,6 @@ Work * initWork(const Data *d, const Cone *k){
   
   w->p->iparm[5] = 1;       /* write solution to b (rhs) */
   w->p->iparm[7] = 0;       /* Max numbers of iterative refinement steps. */
-  w->p->iparm[20] = 0;      /* only use 1x1 diagonal pivoting */
 
   return w;
 }
