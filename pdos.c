@@ -126,8 +126,8 @@ Sol * pdos(const Data * d, const Cone * k)
 	getSolution(w,sol,STATE);
 
 	if(p->VERBOSE) {
-    printSummary(i,&residuals);
-    PDOS_printf("Total solve time is %4.8fs\n", tocq(&PDOS_timer));
+      printSummary(i,&residuals);
+      PDOS_printf("Total solve time is %4.8fs\n", tocq(&PDOS_timer));
 	}
 
   // free the temporary workspace
