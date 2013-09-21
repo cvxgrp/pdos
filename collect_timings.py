@@ -5,7 +5,7 @@ import re
 import pickle
 
 if __name__=="__main__":
-    threads = ["1","2","4","8"]
+    threads = ["1","2","4","8", "16", "32"]
     problem_sizes = ["10x100", "30x1000", "100x10000", "300x100000"]
 
     records = \
