@@ -54,8 +54,10 @@ Work * initWork(const Data *d, const Cone *k){
     
   w->p->msglvl = 0;         /* Print statistical information  */
 
+  PDOS_printf("forming KKT\n");
   formKKT(w); 
 
+  PDOS_printf("initializing pardiso\n");
   pardisoinit (w->p->pt,  &(w->p->mtype), &(w->p->solver), w->p->iparm, w->p->dparm, &(w->p->error)); 
 
   // w->p->dparm[0] = 20; // MAX CG ITS
@@ -161,7 +163,7 @@ void formKKT(Work * w){
 
   /* allocate memory */
   w->p->Unz = w->m + w->n + w->Ap[w->n];
-  w->p->Ui = PDOS_malloc(sizeof(int)*w->p->n);
+  w->p->Ui = PDOS_malloc(sizeof(int)*(w->p->n+1));
   w->p->Uj = PDOS_malloc(sizeof(int)*w->p->Unz);
   w->p->U  = PDOS_malloc(sizeof(double)*w->p->Unz);
   
