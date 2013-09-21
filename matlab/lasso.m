@@ -1,23 +1,42 @@
 function [data] = lasso()
-    m = 2000;
-    n = 50000;
+    randn('seed',0); rand('seed',0);
+    m = 20;%2500;
+    n = 100;%50000;
     A = randn(m,n); b = randn(m,1);
     gamma = 1;
-%     
-%     cvx_begin
-%         variable x(n)
-%         minimize (sum_square(A*x - b) + gamma * norm(x,1))
-%     cvx_end
-%     
+%{
+    tic
+    cvx_solver sedumi
+    cvx_begin
+        variable x(n)
+        minimize (sum_square(A*x - b) + gamma * norm(x,1))
+    cvx_end
+    sedumi_time = toc
+
+    save sedumi_time sedumi_time m n
+%}
+
     dims = struct('m',m,'n',n);
     params = struct('A',A,'b',b,'gamma',gamma);
     
-    data = prob_to_socp(params, dims);
+    socp_data = prob_to_socp(params, dims);
     
 %    ecos(data.c, data.G, data.h, data.dims);
     
-    mb = nnz(data.G)*8/(1024*1024);
+    mb = nnz(socp_data.G)*8/(1024*1024);
     fprintf('total data is %f mb\n',mb);
+
+    data.A = socp_data.G;
+    data.b = socp_data.h;
+    data.c = socp_data.c;
+    cones = socp_data.dims;
+    cones.f = 0;
+
+    socp_data
+
+    params.VERBOSE = 1;
+    write_pdos_data(data, cones, params, 'lasso_data2');
+
 end
 
 function [data] = prob_to_socp(params, dims)
