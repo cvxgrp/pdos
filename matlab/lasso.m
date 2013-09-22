@@ -1,7 +1,7 @@
 function [data] = lasso()
     randn('seed',0); rand('seed',0);
-    m = 20;%2500;
-    n = 100;%50000;
+    m = 2500;
+    n = 50000;
     A = randn(m,n); b = randn(m,1);
     gamma = 1;
 %{
@@ -35,7 +35,8 @@ function [data] = lasso()
     socp_data
 
     params.VERBOSE = 1;
-    write_pdos_data(data, cones, params, 'lasso_data2');
+    params.EPS_ABS = 1e-1;
+    write_pdos_data(data, cones, params, 'lasso_data');
 
 end
 
