@@ -255,7 +255,7 @@ void projectLinSys(Work * w){
   // stilde = b - A*x
   static idxint i = 0;
   for (i = 0; i < w->m; i++) {
-    // set stilde = (b - (s + lambda*y))
+    // set stilde = (b + (s + lambda*y))
     w->stilde[i] += (w->s[i] + w->lambda*w->y[i]);
   }
   //toc(&lin_timer);
