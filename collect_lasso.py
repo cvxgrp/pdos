@@ -32,5 +32,6 @@ if __name__=="__main__":
         problem = "matlab/lasso_data"
         result = subprocess.check_output(["./bin/pdos", problem])
         record_times(result, thread)
+        print result
 
     pickle.dump(records, open("lasso_timings.p", "wb"))
