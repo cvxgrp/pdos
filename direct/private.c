@@ -111,7 +111,7 @@ void factorize(Work * w){
 
   cs * K = formKKT(w);
 #ifdef PRINTKKT
-  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization info:\n");
+  if(w->params->VERBOSE) PDOS_printf("Factorization info:\n");
 #endif
   double *info;
   choleskyInit(K, w->p->P, &info);
@@ -136,7 +136,7 @@ void factorize(Work * w){
   // perform the LDL factorization
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
 
-  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq(&KKT_timer));
+  if(w->params->VERBOSE) PDOS_printf("Factorization time: %4.8fs\n",tocq(&KKT_timer));
   cs_spfree(C);cs_spfree(K);
   PDOS_free(Pinv);PDOS_free(info);
 }
