@@ -3,7 +3,8 @@ function [data] = lasso()
     m = 2500;
     n = 50000;
     A = randn(m,n); b = randn(m,1);
-    gamma = 1;
+    
+    gamma = 0.01*norm(2*A'*b,Inf)
 %{
     tic
     cvx_solver sedumi
@@ -33,7 +34,7 @@ function [data] = lasso()
     cones.f = 0;
 
     socp_data
-
+    % 444 vs 450
     params.VERBOSE = 1;
     params.EPS_ABS = 1e-1;
     write_pdos_data(data, cones, params, 'lasso_data');
