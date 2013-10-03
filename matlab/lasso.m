@@ -1,44 +1,51 @@
 function [data] = lasso()
+    sizes = [2500, 50000; 1250, 10000; 250, 5000];
+
     randn('seed',0); rand('seed',0);
-    m = 2500;
-    n = 50000;
-    A = randn(m,n); b = randn(m,1);
     
-    gamma = 0.01*norm(2*A'*b,Inf)
-%{
-    tic
-    cvx_solver sedumi
-    cvx_begin
-        variable x(n)
-        minimize (sum_square(A*x - b) + gamma * norm(x,1))
-    cvx_end
-    sedumi_time = toc
+    for j = 1:10,
+        for i = 1:length(sizes),
+            m = sizes(i,1);
+            n = sizes(i,2);
+            A = randn(m,n); b = randn(m,1);
+            
+            gamma = 0.01*norm(2*A'*b,Inf)
+        %{
+            tic
+            cvx_solver sedumi
+            cvx_begin
+                variable x(n)
+                minimize (sum_square(A*x - b) + gamma * norm(x,1))
+            cvx_end
+            sedumi_time = toc
 
-    save sedumi_time sedumi_time m n
-%}
+            save sedumi_time sedumi_time m n
+        %}
 
-    dims = struct('m',m,'n',n);
-    params = struct('A',A,'b',b,'gamma',gamma);
-    
-    socp_data = prob_to_socp(params, dims);
-    
-%    ecos(data.c, data.G, data.h, data.dims);
-    
-    mb = nnz(socp_data.G)*8/(1024*1024);
-    fprintf('total data is %f mb\n',mb);
+            dims = struct('m',m,'n',n);
+            params = struct('A',A,'b',b,'gamma',gamma);
+            
+            socp_data = prob_to_socp(params, dims);
+            
+        %    ecos(data.c, data.G, data.h, data.dims);
+            
+            mb = nnz(socp_data.G)*8/(1024*1024);
+            fprintf('total data is %f mb\n',mb);
 
-    data.A = socp_data.G;
-    data.b = socp_data.h;
-    data.c = socp_data.c;
-    cones = socp_data.dims;
-    cones.f = 0;
+            data.A = socp_data.G;
+            data.b = socp_data.h;
+            data.c = socp_data.c;
+            cones = socp_data.dims;
+            cones.f = 0;
 
-    socp_data
-    % 444 vs 450
-    params.VERBOSE = 1;
-    params.EPS_ABS = 1e-1;
-    write_pdos_data(data, cones, params, 'lasso_data');
-
+            socp_data
+            % 444 vs 450
+            params.VERBOSE = 1;
+            params.EPS_ABS = 1e-1;
+            s = sprintf('lasso_%02d_%dx%d',j, m,n); 
+            write_pdos_data(data, cones, params, s);
+        end
+    end
 end
 
 function [data] = prob_to_socp(params, dims)
