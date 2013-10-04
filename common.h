@@ -251,6 +251,21 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     for(i = 0; i < d->m; ++i) {
       w->b[i] = d->b[i]*w->D[i];
     }
+    
+    // y = D^{-1}*y (scale the initial variable)
+    for(i = 0; i < w->m; ++i) {
+      w->y[i] /= w->D[i];
+    }
+
+    // x = E^{-1}*x (scale the initial variable)
+    for(i = 0; i < w->n; ++i) {
+      w->x[i] /= w->E[i];      
+    }
+
+    // s = D*s (scale the initial variable)
+    for(i = 0; i < w->m; ++i) {
+      w->s[i] *= w->D[i];
+    }
 
   } else {
     // if we don't normalize, we just point out workspace copy to the actual
@@ -271,10 +286,11 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   PDOS_printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
   w->lambda = (1e-6 + calcNorm(w->b,w->m)) / (1e-6 + calcNorm(w->c,w->n)) ;
 
-  // set ratio of "x" space penalty (1e-6) to "s,y" space penatly (1)
+  // set ratio of "x" space penalty (1e-6) to "s,y" space penalty (1)
   for( i=0; i < d->n; ++i ) {
     w->E[i] *= SQRT_RATIO;
     w->c[i] *= SQRT_RATIO;
+    w->x[i] /= SQRT_RATIO;
   }
   for( i=0; i < Anz; ++i ) {
     w->Ax[i] *= SQRT_RATIO;

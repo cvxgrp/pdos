@@ -91,23 +91,12 @@ Sol * pdos(const Data * d, const Cone * k)
   }
 
   for (i=0; i < p->MAX_ITERS; ++i){
-    // Pi_P
-	projectLinSys(w);
-
-    /* overrelaxation */
-    relax(w);
-
-    // Pi_K
-    projectCones(w,k);
-    // y += (1.0/lambda)*(s - stilde)
-    updateDualVars(w);
-
     residuals.p_res = calcPriResid(w) ;
     residuals.d_res = calcDualResid(w);
     residuals.p_obj = calcPriObj(w);
     residuals.d_obj = calcDualObj(w);
     residuals.eta = fabs(residuals.p_obj - residuals.d_obj);
-
+    
     // check against DIMACS error measures
     if (residuals.p_res < p->EPS_ABS * pscale &&
         residuals.d_res < p->EPS_ABS * dscale &&
@@ -116,6 +105,17 @@ Sol * pdos(const Data * d, const Cone * k)
       break;
     }
 		if (p->VERBOSE && i % 10 == 0) printSummary(i, &residuals);
+    
+    // Pi_P
+	  projectLinSys(w);
+
+    /* overrelaxation */
+    relax(w);
+
+    // Pi_K
+    projectCones(w,k);
+    // y += (1.0/lambda)*(s - stilde)
+    updateDualVars(w);
 	}
 	Sol * sol = PDOS_malloc(sizeof(Sol));
 	getSolution(w,sol,STATE);
@@ -163,7 +163,18 @@ void freeSol(Sol **sol){
 }
 
 static inline void freeWork(Work **w){
+  idxint i;
   if(*w) {
+    // undo the scalings which may have touched data
+    if(!(*w)->params->NORMALIZE) {
+      for( i=0; i < (*w)->n; ++i ) {
+        (*w)->c[i] /= SQRT_RATIO;
+      }
+      for( i=0; i < (*w)->Ap[(*w)->n]; ++i ) {
+        (*w)->Ax[i] /= SQRT_RATIO;
+      }
+    }
+    
     freePriv(*w);
     if((*w)->x) PDOS_free((*w)->x); // also frees w->stilde
     (*w)->stilde = NULL;

@@ -333,7 +333,7 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
     return PyErr_NoMemory();
   memcpy(MAT_BUFD(y), solution->y, m*sizeof(double));
 
-  PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:O,s:s}","x", x, "s", y, "y", y, "status", solution->status);
+  PyObject *returnDict = Py_BuildValue("{s:O,s:O,s:O,s:s}","x", x, "s", s, "y", y, "status", solution->status);
   // give up ownership to the return dictionary
   Py_DECREF(x); Py_DECREF(s); Py_DECREF(y); 
   
