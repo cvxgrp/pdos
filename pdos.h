@@ -24,6 +24,11 @@ typedef struct PROBLEM_DATA {
   double * Ax;
   idxint * Ai, * Ap;
   double * b, * c;
+  
+  /* initial guesses; can be NULL */
+  double *x;
+  double *y;
+  double *s;
 
   Params * p;
 } Data;

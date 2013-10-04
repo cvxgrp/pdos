@@ -105,10 +105,22 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   w->params = d->p;
   // ensure that x, stilde are contiguous in memory
   w->x = PDOS_calloc(d->n + MAX(d->m,d->n),sizeof(double));
+  if (d->x != NULL)
+  {
+    memcpy(w->x, d->x, d->n*sizeof(double));
+  }
   w->stilde = w->x + d->n;
   // allocate workspace memory for s and y
   w->s = PDOS_calloc(d->m,sizeof(double));
+  if (d->s != NULL)
+  {
+    memcpy(w->s, d->s, d->m*sizeof(double));
+  }
   w->y = PDOS_calloc(d->m,sizeof(double));
+  if (d->y != NULL)
+  {
+    memcpy(w->y, d->y, d->m*sizeof(double));
+  }
 
   // allocate workspace memory for normalization matrices
   w->D = PDOS_malloc(d->m*sizeof(double));
@@ -187,11 +199,11 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       }
 
       for(i = 0; i < d->m; ++i) {
-        w->D[i] = sqrt(w->D[i] / pi[i]);
+        w->D[i] = fabs(pi[i]) > 1e-6 ? sqrt(w->D[i] / pi[i] ) : 1.0;
         pi[i] = 0.0;  // set to 0 to compute max
       }
       // handle last element
-      lastD = sqrt( lastD / lastPi );
+      lastD = fabs(lastPi) > 1e-6 ? sqrt( lastD / lastPi ) : 1.0;
       lastPi = 0.0;
 
       // now compute max down through columns
@@ -209,11 +221,11 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       }
 
       for(i = 0; i < d->n; ++i) {
-        w->E[i] = sqrt(w->E[i] / delta[i]);
+        w->E[i] = fabs(delta[i]) > 1e-6 ? sqrt(w->E[i] / delta[i] ) : 1.0;
         delta[i] = 0.0;
       }
       // handle last element
-      lastE = sqrt( lastE / lastDelta );
+      lastE = fabs(lastDelta) > 1e-6 ? sqrt( lastE / lastDelta ) : 1.0;
       lastDelta = 0.0;
     }
 
@@ -256,8 +268,8 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
 
-  printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
-  w->lambda = calcNorm(w->b,w->m) / calcNorm(w->c,w->n) ;
+  PDOS_printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
+  w->lambda = (1e-6 + calcNorm(w->b,w->m)) / (1e-6 + calcNorm(w->c,w->n)) ;
 
   // set ratio of "x" space penalty (1e-6) to "s,y" space penatly (1)
   for( i=0; i < d->n; ++i ) {

@@ -2,17 +2,8 @@
 #include "run_pdos.h"
 
 #ifndef DEMO_PATH
-#define DEMO_PATH "../data_pdos"
+#define DEMO_PATH "../data/portfolio_test_01_10x100"
 #endif
-
-#ifdef DLONG
-#define READ_INT "%li"
-#else
-#define READ_INT "%i"
-#endif
-
-#define READ_FLOAT "%lf"
-
 static timer PDOS_timer;
 
 int main(int argc, char **argv)
@@ -35,59 +26,48 @@ int main(int argc, char **argv)
   return 0;
 }
 
-void read_in_data(FILE * fp,Data ** d, Cone ** k){
+void read_in_data(FILE * fp, Data ** d, Cone ** k){
 	/* MATRIX IN DATA FILE MUST BE IN COLUMN COMPRESSED FORMAT */
   (*d)->p = malloc(sizeof(Params));
 
-	fscanf(fp, READ_INT, &((*d)->n));
-	fscanf(fp, READ_INT, &((*d)->m));
-  fscanf(fp, READ_INT, &((*k)->f));
-  fscanf(fp, READ_INT, &((*k)->l));
-  fscanf(fp, READ_INT, &((*k)->qsize));
+  fread(&((*d)->n), sizeof(idxint), 1, fp);
+	fread(&((*d)->m), sizeof(idxint), 1, fp);
+	fread(&((*k)->f), sizeof(idxint), 1, fp);
+	fread(&((*k)->l), sizeof(idxint), 1, fp);
+	fread(&((*k)->qsize), sizeof(idxint), 1, fp);
+
   (*k)->q = malloc(sizeof(idxint)*(*k)->qsize);
-  for(idxint i = 0; i < (*k)->qsize; i++)
-  {
-    fscanf(fp, READ_INT, &(*k)->q[i]);
-  }
+  fread((*k)->q, sizeof(idxint), (*k)->qsize, fp);
 
   (*d)->b = malloc(sizeof(double)*(*d)->m);
-  for(idxint i = 0; i < (*d)->m; i++)
-  {
-    fscanf(fp, READ_FLOAT, &(*d)->b[i]);
-  }
+  fread((*d)->b, sizeof(double), (*d)->m, fp);
 
   (*d)->c = malloc(sizeof(double)*(*d)->n);
-  for(idxint i = 0; i < (*d)->n; i++)
-  {
-    fscanf(fp, READ_FLOAT, &(*d)->c[i]);
-  }
-  fscanf(fp, READ_INT, &((*d)->p->MAX_ITERS));
-  fscanf(fp, READ_INT, &((*d)->p->CG_MAX_ITS));
+  fread((*d)->c, sizeof(double), (*d)->n, fp);
 
-  fscanf(fp, READ_FLOAT, &((*d)->p->ALPHA));
-  fscanf(fp, READ_FLOAT, &((*d)->p->EPS_ABS));
+  fread(&((*d)->p->MAX_ITERS), sizeof(idxint), 1, fp);
+  fread(&((*d)->p->CG_MAX_ITS), sizeof(idxint), 1, fp);
+  fread(&((*d)->p->ALPHA), sizeof(double), 1, fp);
+  fread(&((*d)->p->EPS_ABS), sizeof(double), 1, fp);
   //fscanf(fp, READ_FLOAT, &((*d)->p->EPS_REL));
-  fscanf(fp, READ_FLOAT, &((*d)->p->CG_TOL));
-  fscanf(fp, READ_INT, &((*d)->p->VERBOSE));
-  fscanf(fp, READ_INT, &((*d)->p->NORMALIZE));
+  fread(&((*d)->p->CG_TOL), sizeof(double), 1, fp);
+  fread(&((*d)->p->VERBOSE), sizeof(idxint), 1, fp);
+  fread(&((*d)->p->NORMALIZE), sizeof(idxint), 1, fp);
 
   idxint Anz;
-  fscanf(fp, READ_INT, &Anz);
-	(*d)->Ai = malloc(sizeof(idxint)*Anz);
-  for(idxint i = 0; i < Anz; i++)
-	{
-		fscanf(fp, READ_INT, &(*d)->Ai[i]);
-	}
+  fread(&Anz, sizeof(idxint), 1, fp);
+
+  (*d)->Ai = malloc(sizeof(idxint)*Anz);
+  fread((*d)->Ai, sizeof(idxint), Anz, fp);
+
   (*d)->Ap = malloc(sizeof(idxint)*((*d)->n+1));
-	for(idxint i = 0; i < (*d)->n+1; i++)
-	{
-		fscanf(fp, READ_INT, &(*d)->Ap[i]);
-	}
+  fread((*d)->Ap, sizeof(idxint), (*d)->n+1, fp);
+
   (*d)->Ax = malloc(sizeof(double)*Anz);
-	for(int i = 0; i < Anz; i++)
-	{
-		fscanf(fp, READ_FLOAT, &(*d)->Ax[i]);
-	}
+  fread((*d)->Ax, sizeof(double), Anz, fp);
+  
+  (*d)->x = NULL; (*d)->y = NULL; (*d)->s = NULL;
+
 
 
   /*

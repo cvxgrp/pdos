@@ -44,11 +44,11 @@ lib/libpdosindir.a: $(OBJECTS) indirect/private.o
 
 bin/demo_direct: run_pdos.c lib/libpdosdir.a
 	mkdir -p bin
-	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data/portfolio_test_01_10x100\"" -o $@ $^ $(LDFLAGS)
 
 bin/demo_indirect: run_pdos.c lib/libpdosindir.a
 	mkdir -p bin
-	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data_pdos\"" -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -DDEMO_PATH="\"$(CURDIR)/data/portfolio_test_01_10x100\"" -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean purge
 clean:

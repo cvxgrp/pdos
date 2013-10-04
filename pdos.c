@@ -138,6 +138,9 @@ void freeData(Data **d, Cone **k){
     if((*d)->Ai) PDOS_free((*d)->Ai);
     if((*d)->Ap) PDOS_free((*d)->Ap);
     if((*d)->p) PDOS_free((*d)->p);
+    if((*d)->x) PDOS_free((*d)->x);
+    if((*d)->y) PDOS_free((*d)->y);
+    if((*d)->s) PDOS_free((*d)->s);
     PDOS_free(*d);
   }
   if(*k) {

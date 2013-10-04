@@ -74,17 +74,21 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
 #endif
   
   matrix *c, *b;
+  matrix *x0 = NULL, *y0 = NULL, *s0 = NULL;
   spmatrix *A;
   PyObject *dims, *opts = NULL;
   
   idxint m, n, i, num_conic_variables = 0;
   
-  if( !PyArg_ParseTuple(args, "OOOO!|O!",
+  if( !PyArg_ParseTuple(args, "OOOO!|O!OOO",
         &c,
         &A,
         &b,
         &PyDict_Type, &dims,
-        &PyDict_Type, &opts)
+        &PyDict_Type, &opts,
+        &x0,
+        &y0,
+        &s0)
     ) { freeDataAndConeOnly(&d,&k); return NULL; }
         
   /* set A */
@@ -263,6 +267,47 @@ static PyObject *solve(PyObject* self, PyObject *args, PyObject *keywords)
       }
     }
 #endif
+  }
+  
+  d->x = NULL; d->y = NULL; d->s = NULL;
+  if(x0) { 
+    /* set x0 */
+    if (!Matrix_Check(x0) || MAT_NCOLS(x0) != 1 || MAT_ID(x0) != DOUBLE) {
+        PyErr_SetString(PyExc_TypeError, "x0 must be a dense 'd' matrix with one column");
+        freeDataAndConeOnly(&d,&k); return NULL;
+    }
+
+    if (MAT_NROWS(x0) != n){
+        PyErr_SetString(PyExc_ValueError, "x0 has incompatible dimension with A");
+        freeDataAndConeOnly(&d,&k); return NULL;
+    }
+    d->x = MAT_BUFD(x0);
+  }
+  if(y0) { 
+    /* set y0 */
+    if (!Matrix_Check(y0) || MAT_NCOLS(y0) != 1 || MAT_ID(y0) != DOUBLE) {
+        PyErr_SetString(PyExc_TypeError, "y0 must be a dense 'd' matrix with one column");
+        freeDataAndConeOnly(&d,&k); return NULL;
+    }
+
+    if (MAT_NROWS(y0) != m){
+        PyErr_SetString(PyExc_ValueError, "y0 has incompatible dimension with A");
+        freeDataAndConeOnly(&d,&k); return NULL;
+    }
+    d->y = MAT_BUFD(y0);
+  }
+  if(s0) { 
+    /* set s0 */
+    if (!Matrix_Check(s0) || MAT_NCOLS(s0) != 1 || MAT_ID(s0) != DOUBLE) {
+        PyErr_SetString(PyExc_TypeError, "s0 must be a dense 'd' matrix with one column");
+        freeDataAndConeOnly(&d,&k); return NULL;
+    }
+
+    if (MAT_NROWS(s0) != m){
+        PyErr_SetString(PyExc_ValueError, "s0 has incompatible dimension with A");
+        freeDataAndConeOnly(&d,&k); return NULL;
+    }
+    d->s = MAT_BUFD(s0);
   }
   
   // solve the problem

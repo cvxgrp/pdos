@@ -14,7 +14,13 @@ function [x, s, y, status] = pdos_direct(data, cone, params)
 %
 % data must consist of data.A, data.b, data.c, where A,b,c used as above.
 % You must take care to ensure that data.A is sparse while data.b and data.c
-% are dense. 
+% are dense. Optionally, data can supply
+%   data.x0
+%   data.y0
+%   data.s0
+% which are the initial guesses for the primal solution, dual solution, and
+% slack variable. Note that the slack variable does not necessarily need to
+% satisfy A*x + s = b. If these are not supplied, they default to 0.  
 %  
 % cone struct must consist of:
 % cone.f, length of free cone (for equality constraints)

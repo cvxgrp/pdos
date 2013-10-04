@@ -87,8 +87,13 @@ direct and indirect solver):
   * `opts['NORMALIZE']` is an integer (or Boolean) either 0 or 1. Tells the solver to normalize the data. Defaults to 0 (or False).
   * `opts['CG_MAX_ITS']` is an integer. Sets the maximum number of CG iterations. Defaults to 20.
   * `opts['CG_TOL']` is a double. Sets the tolerance for CG. Defaults to 1e-4.
+
+The last two options are ignored in the direct solver. Additionally, initial ADMM iterates can be optionally supplied:
+
+* `x0` is a (dense) CVXOPT (n x 1) matrix of doubles giving the initial guess for the primal solution `x`
+* `y0` is a (dense) CVXOPT (m x 1) matrix of doubles giving the initial guess for the dual solution `y`
+* `s0` is a (dense) CVXOPT (m x 1) matrix of doubles giving the initial guess for the primal slack `s`; note that it doesn't necessarily need to satsify `Ax + s = b`
   
-The last two options are ignored in the direct solver.
 
 Although we wish to support a Numpy interface, we require a sparse matrix C module, which is either unavailable or poorly documented in SciPy.
 
@@ -122,6 +127,11 @@ The relevant data structures are:
       double * Ax;
       idxint * Ai, * Ap;
       double * b, * c;
+      
+      /* initial guesses; can be NULL */
+      double *x;
+      double *y;
+      double *s;
   
       Params * p;
     } Data;
