@@ -284,7 +284,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
 
-  PDOS_printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
+  // PDOS_printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
   w->lambda = (1e-6 + calcNorm(w->b,w->m)) / (1e-6 + calcNorm(w->c,w->n)) ;
 
   // set ratio of "x" space penalty (1e-6) to "s,y" space penalty (1)
