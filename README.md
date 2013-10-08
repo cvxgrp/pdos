@@ -72,7 +72,9 @@ The matrix "A" is a sparse matrix in column compressed storage. The vectors "c" 
 The code returns a Python dictionary with four keys, 'x', 's', 'y', and
 'status'. These report the primal and dual solution (as CVXOPT matrices) and the
 solver status (as a string). There are also optional arguments (for both the
-direct and indirect solver):
+direct and indirect solver) which must be supplied in the following order:
+
+    sol = solve(c, A, b, dims, opts, x0, y0, z0)
 
 * `opts` is an optional dictionary with
   *  `opts['MAX_ITERS']` is an integer. Sets the maximum number of ADMM iterations. Defaults to 2000.
@@ -82,9 +84,13 @@ direct and indirect solver):
   * `opts['NORMALIZE']` is an integer (or Boolean) either 0 or 1. Tells the solver to normalize the data. Defaults to 0 (or False).
   * `opts['CG_MAX_ITS']` is an integer. Sets the maximum number of CG iterations. Defaults to 20.
   * `opts['CG_TOL']` is a double. Sets the tolerance for CG. Defaults to 1e-4.
-  
-The last two options are ignored in the direct solver.
 
+The last two options are ignored in the direct solver. Additionally, initial ADMM iterates can be optionally supplied:
+
+* `x0` is a (dense) CVXOPT (n x 1) matrix of doubles giving the initial guess for the primal solution `x`
+* `y0` is a (dense) CVXOPT (m x 1) matrix of doubles giving the initial guess for the dual solution `y`
+* `s0` is a (dense) CVXOPT (m x 1) matrix of doubles giving the initial guess for the primal slack `s`; note that it doesn't necessarily need to satsify `Ax + s = b`
+  
 Although we wish to support a Numpy interface, we require a sparse matrix C module, which is either unavailable or poorly documented in SciPy.
 
 Usage in C
@@ -117,6 +123,11 @@ The relevant data structures are:
       double * Ax;
       idxint * Ai, * Ap;
       double * b, * c;
+      
+      /* initial guesses; can be NULL */
+      double *x;
+      double *y;
+      double *s;
   
       Params * p;
     } Data;

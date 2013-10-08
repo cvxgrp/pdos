@@ -111,7 +111,7 @@ void factorize(Work * w){
 
   cs * K = formKKT(w);
 #ifdef PRINTKKT
-  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization info:\n");
+  if(w->params->VERBOSE) PDOS_printf("Factorization info:\n");
 #endif
   double *info;
   choleskyInit(K, w->p->P, &info);
@@ -136,7 +136,7 @@ void factorize(Work * w){
   // perform the LDL factorization
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
 
-  if(w->params->VERBOSE) PDOS_printf("KKT matrix factorization took %4.8fs\n",tocq(&KKT_timer));
+  if(w->params->VERBOSE) PDOS_printf("Factorization time: %4.8fs\n",tocq(&KKT_timer));
   cs_spfree(C);cs_spfree(K);
   PDOS_free(Pinv);PDOS_free(info);
 }
@@ -153,12 +153,11 @@ void choleskyInit(const cs * A, idxint P[], double **info) {
 void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D)
 {
   (*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
-  printf("%x\n", (*L)->p);
-  idxint *Parent = PDOS_malloc(A->n * sizeof(idxint));
-  idxint *Lnz = PDOS_malloc(A->n * sizeof(idxint));
-  idxint *Flag = PDOS_malloc(A->n * sizeof(idxint));
-  idxint *Pattern = PDOS_malloc(A->n * sizeof(idxint));
-  double *Y = PDOS_malloc(A->n * sizeof(double));
+  idxint *Parent = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  idxint *Lnz = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  idxint *Flag = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  idxint *Pattern = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
+  double *Y = (idxint *) PDOS_malloc(A->n * sizeof(double));
 #ifdef LDL_LONG
 	ldl_l_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
 #else
@@ -174,11 +173,8 @@ void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D
 #else
 	ldl_numeric(A->n, A->p, A->i, A->x, (*L)->p, Parent, Lnz, (*L)->i, (*L)->x, *D, Y, Pattern, Flag, P, Pinv);
 #endif
-  PDOS_free(Parent);
-  PDOS_free(Lnz);
-  PDOS_free(Flag);
-  PDOS_free(Pattern);
-  PDOS_free(Y);
+  PDOS_free(Parent); PDOS_free(Lnz); PDOS_free(Flag);
+  PDOS_free(Pattern); PDOS_free(Y);
 }
 
 void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[])

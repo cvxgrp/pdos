@@ -24,7 +24,6 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
   idxint i, j, ind, cone, cone_idx;
   double max_val;
   idxint Anz = d->Ap[d->n];
-  
 
   for(i = 0; i < d->n; ++i) { // cols
     ind = k->f + k->l;
@@ -42,9 +41,9 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
 
       // find the maximum in this column
       cone_idx = j;
-      while ( (cone_idx < Anz) &&  // ensure we stay within array
-              (ind <= d->Ai[cone_idx]) &&
-              (d->Ai[cone_idx] < (ind + k->q[cone])) ) 
+      while ( cone_idx < Anz &&     // ensure we stay within array
+              ind <= d->Ai[cone_idx] && 
+              d->Ai[cone_idx] < ind + k->q[cone]) 
       {
         max_val = MAX(max_val, fabs(w->Ax[cone_idx]));
         cone_idx++;
@@ -54,9 +53,9 @@ static inline void collapseWorkspaceData(Work *w, const Data *d, const Cone *k)
       // also set all the rows (Ai) to be at ind, that is, this row contains
       // everything we need, the other n-1 rows are just 0.
       // this makes duplicates, but doesn't matter
-      while ( (j < Anz) &&
-              (ind <= d->Ai[j]) &&
-              (d->Ai[j] < (ind + k->q[cone])) ) 
+      while ( j < Anz && 
+              ind <= d->Ai[j] && 
+              d->Ai[j] < ind + k->q[cone]) 
       {
         w->Ax[j] = max_val;
         w->Ai[j] = ind;
@@ -107,10 +106,22 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   w->params = d->p;
   // ensure that x, stilde are contiguous in memory
   w->x = PDOS_calloc(d->n + MAX(d->m,d->n),sizeof(double));
+  if (d->x != NULL)
+  {
+    memcpy(w->x, d->x, d->n*sizeof(double));
+  }
   w->stilde = w->x + d->n;
   // allocate workspace memory for s and y
   w->s = PDOS_calloc(d->m,sizeof(double));
+  if (d->s != NULL)
+  {
+    memcpy(w->s, d->s, d->m*sizeof(double));
+  }
   w->y = PDOS_calloc(d->m,sizeof(double));
+  if (d->y != NULL)
+  {
+    memcpy(w->y, d->y, d->m*sizeof(double));
+  }
 
   // allocate workspace memory for normalization matrices
   w->D = PDOS_malloc(d->m*sizeof(double));
@@ -189,11 +200,11 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       }
 
       for(i = 0; i < d->m; ++i) {
-        w->D[i] = sqrt(w->D[i] / pi[i]);
+        w->D[i] = fabs(pi[i]) > 1e-6 ? sqrt(w->D[i] / pi[i] ) : 1.0;
         pi[i] = 0.0;  // set to 0 to compute max
       }
       // handle last element
-      lastD = sqrt( lastD / lastPi );
+      lastD = fabs(lastPi) > 1e-6 ? sqrt( lastD / lastPi ) : 1.0;
       lastPi = 0.0;
 
       // now compute max down through columns
@@ -211,11 +222,11 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
       }
 
       for(i = 0; i < d->n; ++i) {
-        w->E[i] = sqrt(w->E[i] / delta[i]);
+        w->E[i] = fabs(delta[i]) > 1e-6 ? sqrt(w->E[i] / delta[i] ) : 1.0;
         delta[i] = 0.0;
       }
       // handle last element
-      lastE = sqrt( lastE / lastDelta );
+      lastE = fabs(lastDelta) > 1e-6 ? sqrt( lastE / lastDelta ) : 1.0;
       lastDelta = 0.0;
     }
 
@@ -241,6 +252,21 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     for(i = 0; i < d->m; ++i) {
       w->b[i] = d->b[i]*w->D[i];
     }
+    
+    // y = D^{-1}*y (scale the initial variable)
+    for(i = 0; i < w->m; ++i) {
+      w->y[i] /= w->D[i];
+    }
+
+    // x = E^{-1}*x (scale the initial variable)
+    for(i = 0; i < w->n; ++i) {
+      w->x[i] /= w->E[i];      
+    }
+
+    // s = D*s (scale the initial variable)
+    for(i = 0; i < w->m; ++i) {
+      w->s[i] *= w->D[i];
+    }
 
   } else {
     // if we don't normalize, we just point out workspace copy to the actual
@@ -258,13 +284,14 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
 
-  printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
-  w->lambda = calcNorm(w->b,w->m) / calcNorm(w->c,w->n) ;
+  // PDOS_printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
+  w->lambda = (1e-6 + calcNorm(w->b,w->m)) / (1e-6 + calcNorm(w->c,w->n)) ;
 
-  // set ratio of "x" space penalty (1e-6) to "s,y" space penatly (1)
+  // set ratio of "x" space penalty (1e-6) to "s,y" space penalty (1)
   for( i=0; i < d->n; ++i ) {
     w->E[i] *= SQRT_RATIO;
     w->c[i] *= SQRT_RATIO;
+    w->x[i] /= SQRT_RATIO;
   }
   for( i=0; i < Anz; ++i ) {
     w->Ax[i] *= SQRT_RATIO;

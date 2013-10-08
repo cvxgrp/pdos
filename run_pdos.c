@@ -65,8 +65,8 @@ void read_in_data(FILE * fp, Data ** d, Cone ** k){
 
   (*d)->Ax = malloc(sizeof(double)*Anz);
   fread((*d)->Ax, sizeof(double), Anz, fp);
-
-
+  
+  (*d)->x = NULL; (*d)->y = NULL; (*d)->s = NULL;
 
   /*
   fscanf(fp, "%zu", &NNZ);
