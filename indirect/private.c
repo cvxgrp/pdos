@@ -1,5 +1,4 @@
 #include "private.h"
-#include "common.h"
 
 Work * initWork(const Data *d, const Cone *k){
   // private indirect method initialization
@@ -48,7 +47,7 @@ static inline void cgCustom(Work *w){
 	double alpha, beta, qsnew_sq=0;
   // we multiply the tolerance by RATIO since the "x" space is scaled by the
   // inverse of this ratio
-  double tol_sq = TOL*TOL*RATIO;  // XXX: could be a very small number...
+  double tol_sq = TOL*TOL;  // XXX: could be a very small number...
 
   /* q = -lambda * c - A'*(A*x - b + v) */
   memcpy(Ax, s, (w->m)*sizeof(double));

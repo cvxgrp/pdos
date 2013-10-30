@@ -38,9 +38,17 @@ void projectLinSys(Work * w){
 
   // now find stilde...
   // stilde = b - A*x
-  memcpy(w->stilde, w->b, w->m*sizeof(double)); // stilde = b
-  // stilde -= A*x
-  decumByA(w, w->x, w->stilde);
+  /* now, stilde contains b - v - A*x,
+  * where v = s + lambda * y. 
+  * To recover stilde = b - A*x, we simply add "v"
+  * to the solution.
+  */
+  // stilde = b - A*x
+  static idxint i = 0;
+  for (i = 0; i < w->m; i++) {
+   // set stilde = (b + (s + lambda*y))
+   w->stilde[i] += (w->s[i] + w->lambda*w->y[i]);
+  }
 }
 
 Work * initWork(const Data* d, const Cone *k){
@@ -157,7 +165,7 @@ void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D
   idxint *Lnz = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   idxint *Flag = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   idxint *Pattern = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
-  double *Y = (idxint *) PDOS_malloc(A->n * sizeof(double));
+  double *Y = (double *) PDOS_malloc(A->n * sizeof(double));
 
 #ifdef LDL_LONG
 	ldl_l_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);

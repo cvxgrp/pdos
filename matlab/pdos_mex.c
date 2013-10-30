@@ -46,59 +46,59 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    
   const mxArray *A_mex = (mxArray *) mxGetField(data,0,"A");
   if(A_mex == NULL) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `A` entry.");
   }
   if (!mxIsSparse(A_mex)){
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Input matrix A must be in sparse format (pass in sparse(A))");
   }
   if (mxIsComplex(A_mex)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Input matrix A cannot be complex");
   }
   
   const mxArray *b_mex = (mxArray *) mxGetField(data,0,"b");
   if(b_mex == NULL) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `b` entry.");
   }
   if(mxIsSparse(b_mex)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Input vector b must be dense (pass in full(b))");
   }
   if (mxIsComplex(b_mex)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Input vector b cannot be complex");
   }
   
   const mxArray *c_mex = (mxArray *) mxGetField(data,0,"c"); 
   if(c_mex == NULL) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `c` entry.");
   }
   if(mxIsSparse(c_mex)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Input vector c must be dense (pass in full(c))");
   }
   if (mxIsComplex(c_mex)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Input vector c cannot be complex");
   }
   
-  const mxArray *x0 = (mxArray *) mxGetField(data,0,"x0"); 
+  const mxArray *x0 = (mxArray *) mxGetField(data,0,"x0");   
   if(x0 != NULL && mxIsSparse(x0)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Initial vector x0 must be dense (pass in full(x0))");
   }
   if (x0 != NULL && mxIsComplex(x0)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Initial vector x0 cannot be complex");
   }
   
   const mxArray *y0 = (mxArray *) mxGetField(data,0,"y0"); 
   if(y0 != NULL && mxIsSparse(y0)) {
-    mxFree(d); mxFree(k);
+    mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Initial vector y0 must be dense (pass in full(y0))");
   }
   if (y0 != NULL && mxIsComplex(y0)) {
@@ -126,9 +126,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   d->b = mxGetPr(b_mex);
   d->c = mxGetPr(c_mex);
   
-  d->x = mxGetPr(x0);
-  d->y = mxGetPr(y0);
-  d->s = mxGetPr(s0);
+  d->x = x0 ? mxGetPr(x0) : NULL;
+  d->y = y0 ? mxGetPr(y0) : NULL;
+  d->s = s0 ? mxGetPr(s0) : NULL;
   
   d->p->ALPHA = getParameterField(params, "ALPHA", d, k);
   d->p->MAX_ITERS = (idxint)getParameterField(params, "MAX_ITERS", d, k);
