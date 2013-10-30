@@ -38,22 +38,22 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   w->params = d->p;
   // ensure that x, stilde are contiguous in memory
   w->x = PDOS_calloc(d->n + MAX(d->m,d->n),sizeof(double));
-  if (d->x != NULL)
+  /*if (d->x != NULL)
   {
     memcpy(w->x, d->x, d->n*sizeof(double));
-  }
+  }*/
   w->stilde = w->x + d->n;
   // allocate workspace memory for s and y
   w->s = PDOS_calloc(d->m,sizeof(double));
-  if (d->s != NULL)
+  /*if (d->s != NULL)
   {
     memcpy(w->s, d->s, d->m*sizeof(double));
-  }
+  }*/
   w->y = PDOS_calloc(d->m,sizeof(double));
-  if (d->y != NULL)
+  /*if (d->y != NULL)
   {
     memcpy(w->y, d->y, d->m*sizeof(double));
-  }
+  }*/
 
   // allocate workspace memory for normalization matrices
   w->D = PDOS_calloc(d->m, sizeof(double));
