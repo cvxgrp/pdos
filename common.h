@@ -9,7 +9,13 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
+#ifndef MIN
+#define MIN(a,b) ((a) > (b) ? (b) : (a))
+#endif
+
 #define SQRT_RATIO 1e3
+#define RANGE_MAX 1e6 
+#define RANGE_MIN 1e-6
 
 /*
  * commonWorkInit(const Data *d, const Cone *k)
@@ -97,7 +103,8 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     
     // walk through d->m rows of w->D, normalize and store in D
     for(i = 0; i < d->m; ++i) {
-      w->D[i] = fabs(w->D[i]) > 1e-6 ? 1.0 / sqrt(w->D[i]) : 1.0;
+      w->D[i] = MIN( MAX(fabs(w->D[i]), RANGE_MIN), RANGE_MAX);
+      w->D[i] = 1.0 / sqrt(w->D[i]);
     }
     
     // now scale A
@@ -115,7 +122,8 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     }
 
     for(i = 0; i < d->n; ++i) {
-      w->E[i] = fabs(w->E[i]) > 1e-6 ? 1.0 / sqrt(w->E[i]) : 1.0;
+      w->E[i] = MIN( MAX(fabs(w->E[i]), RANGE_MIN), RANGE_MAX);
+      w->E[i] = 1.0 / sqrt(w->E[i]);
     }
 
     // now scale A again
