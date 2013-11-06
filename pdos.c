@@ -72,8 +72,8 @@ Sol * pdos(const Data * d, const Cone * k)
   Params *p = d->p;
   // set the denominators of DIMACS error measures (i.e., relative scale of
   // error)
-  const double pscale = (1.0 + calcNormInf(d->b, d->m));
-  const double dscale = (1.0 + calcNormInf(d->c, d->n));
+  const double pscale = (1.0 + calcNorm(d->b, d->m));
+  const double dscale = (1.0 + calcNorm(d->c, d->n));
 
   if(p->VERBOSE) {
     PDOS_printf("\nPDOS - A Primal-Dual Operator Splitting for Cone Programming.\n");
