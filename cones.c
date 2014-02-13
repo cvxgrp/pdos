@@ -1,9 +1,8 @@
 #include "cones.h"
-#include "util.h"
 #include <math.h>
 
 /* in place projection (with branches) */
-static INLINE void projSelfDualCone(double *x, const Cone * k)
+static __inline void projSelfDualCone(double *x, const Cone * k)
 {
   idxint i, j;
   idxint count;  

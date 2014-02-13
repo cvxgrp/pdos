@@ -11,19 +11,19 @@
 #define CS_CSC(A) (A && (A->nz == -1))
 
 /* wrapper for malloc */
-static INLINE void *cs_malloc (idxint n, idxint size)
+static __inline void *cs_malloc (idxint n, idxint size)
 {
     return (PDOS_malloc (n * size)) ;
 }
 
 /* wrapper for calloc */
-static INLINE void *cs_calloc (idxint n, idxint size)
+static __inline void *cs_calloc (idxint n, idxint size)
 {
     return (PDOS_calloc (n, size)) ;
 }
 
 /* wrapper for free */
-static INLINE void *cs_free (void *p)
+static __inline void *cs_free (void *p)
 {
     if (p) PDOS_free (p) ;       /* free p if it is not already NULL */
     return (NULL) ;         /* return NULL to simplify the use of cs_free */
