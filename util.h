@@ -31,7 +31,7 @@ typedef struct timer{
 
 #else
 
-/* Use POSIX clocl_gettime() for timing on non-Windows machines */
+/* Use POSIX clock_gettime() for timing on non-Windows machines */
 #include <time.h>
 
 typedef struct timer{

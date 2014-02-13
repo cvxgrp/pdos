@@ -4,7 +4,7 @@
 
 static double getParameterField(const mxArray *params, const char *field, Data *d, Cone *k)
 {
-  // helper function for getting a field of the params struct
+  /* helper function for getting a field of the params struct */
   const mxArray *tmp = mxGetField(params, 0, field);
   if(tmp == NULL) {
     mxFree(d); mxFree(k);
@@ -14,7 +14,7 @@ static double getParameterField(const mxArray *params, const char *field, Data *
 }
 
 static idxint getVectorLength(const mxArray *vec, const char *vec_name) {
-  // get the vector length (even if transposed)
+  /* get the vector length (even if transposed) */
   long int m = mxGetM(vec);
   long int n = mxGetN(vec);
   
