@@ -39,19 +39,19 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
   cs *At = NULL;
   Work * w = PDOS_malloc(sizeof(Work));
 
-  // copy dimensions
+  /* copy dimensions */
   w->m = d->m; w->n = d->n;
-  // copy parameters (pointer)
+  /* copy parameters (pointer) */
   w->params = d->p;
-  // ensure that x, stilde are contiguous in memory
+  /* ensure that x, stilde are contiguous in memory */
   w->x = PDOS_calloc(d->n + MAX(d->m,d->n),sizeof(double));
   if (d->x != NULL)
   {
     memcpy(w->x, d->x, d->n*sizeof(double));
   }
   w->stilde = w->x + d->n;
-  // allocate workspace memory for s and y
-  w->s = PDOS_calloc(d->m,sizeof(double));
+  /* allocate workspace memory for s and y */
+  w->s = PDOS_calloc(d->m,sizeof(double)); 
   if (d->s != NULL)
   {
     memcpy(w->s, d->s, d->m*sizeof(double));
@@ -62,7 +62,7 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
     memcpy(w->y, d->y, d->m*sizeof(double));
   }
 
-  // allocate workspace memory for normalization matrices
+  /* allocate workspace memory for normalization matrices */
   w->D = PDOS_calloc(d->m, sizeof(double));
   w->E = PDOS_calloc(d->n, sizeof(double));
 
@@ -76,22 +76,22 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
     w->b = PDOS_calloc(d->m, sizeof(double));
     w->c = PDOS_calloc(d->n, sizeof(double));
 
-    // set w->Ax = d->Ax
+    /* set w->Ax = d->Ax */
     memcpy(w->Ax, d->Ax, Anz*sizeof(double));
 
-    // set w->c = d->c
+    /* set w->c = d->c */
     memcpy(w->c, d->c, d->n*sizeof(double));
 
-    // set w->b = d->b
+    /* set w->b = d->b */
     memcpy(w->b, d->b, d->m*sizeof(double));
 
-    // compute norm across rows
-    for(i = 0; i < d->n; ++i) { // cols
+    /* compute norm across rows */
+    for(i = 0; i < d->n; ++i) { /* cols */
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
         w->D[d->Ai[j]] += d->Ax[j] * d->Ax[j];
       }
     }
-    // now collapse cones together by taking average norm square
+    /* now collapse cones together by taking average norm square */
     ind = k->f + k->l;
     for(cone = 0; cone < k->qsize; ++cone) {
       sum = 0;
@@ -104,21 +104,21 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
       ind += k->q[cone];
     }
     
-    // walk through d->m rows of w->D, normalize and store in D
+    /* walk through d->m rows of w->D, normalize and store in D */
     for(i = 0; i < d->m; ++i) {
       w->D[i] = MIN( MAX(fabs(w->D[i]), RANGE_MIN), RANGE_MAX);
       w->D[i] = 1.0 / sqrt(w->D[i]);
     }
     
-    // now scale A
-    for(i = 0; i < d->n; ++i) { // cols
+    /* now scale A */
+    for(i = 0; i < d->n; ++i) { /* cols */
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
         w->Ax[j] *= w->D[d->Ai[j]];
       }
     }
 
-    // now compute norms of columns (of normalized data)
-    for(i = 0; i < d->n; ++i) { // cols
+    /* now compute norms of columns (of normalized data) */
+    for(i = 0; i < d->n; ++i) { /* cols */
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
         w->E[i] += w->Ax[j] * w->Ax[j];
       }
@@ -129,33 +129,33 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
       w->E[i] = 1.0 / sqrt(w->E[i]);
     }
 
-    // now scale A again
-    for(i = 0; i < d->n; ++i) { // cols
+    /* now scale A again */
+    for(i = 0; i < d->n; ++i) { /* cols */
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
         w->Ax[j] *= w->E[i];
       }
     }
 
-    // scale c
+    /* scale c */
     for(i = 0; i < d->n; ++i) {
       w->c[i] = d->c[i]*w->E[i];
     }
-    // scale b
+    /* scale b */
     for(i = 0; i < d->m; ++i) {
       w->b[i] = d->b[i]*w->D[i];
     }
     
-    // y = D^{-1}*y (scale the initial variable)
+    /* y = D^{-1}*y (scale the initial variable) */
     for(i = 0; i < w->m; ++i) {
       w->y[i] /= w->D[i];
     }
 
-    // x = E^{-1}*x (scale the initial variable)
+    /* x = E^{-1}*x (scale the initial variable) */
     for(i = 0; i < w->n; ++i) {
       w->x[i] /= w->E[i];      
     }
 
-    // s = D*s (scale the initial variable)
+    /* s = D*s (scale the initial variable) */
     for(i = 0; i < w->m; ++i) {
       w->s[i] *= w->D[i];
     }
@@ -163,8 +163,9 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
   } else {
     idxint i;
 
-    // if we don't normalize, we just point out workspace copy to the actual
-    // data copies of the problem data
+    /* if we don't normalize, we just point our workspace copy to the actual
+     * data copies of the problem data
+     */
     w->Ax = d->Ax;
     w->Ai = d->Ai;
     w->Ap = d->Ap;
@@ -172,15 +173,15 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
     w->c = d->c;
 
 
-    // set the scaling matrices to the identity
+    /* set the scaling matrices to the identity */
     for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
     for( i=0; i < d->n; ++i ) w->E[i] = 1.0;
   }
 
-  //PDOS_printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n));
+  /*PDOS_printf("||b||_2: %f ||c||_2: %f\n", calcNorm(w->b,w->m), calcNorm(w->c,w->n)); */
   w->lambda = (1e-15 + calcNorm(w->b,w->m)) / (1e-15 + calcNorm(w->c,w->n));
 
-  // set ratio of "x" space penalty (1e-6) to "s,y" space penalty (1)
+  /* set ratio of "x" space penalty (1e-6) to "s,y" space penalty (1) */
   for( i=0; i < d->n; ++i ) {
     w->E[i] *= SQRT_RATIO;
     w->c[i] *= SQRT_RATIO;
@@ -190,25 +191,27 @@ static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
     w->Ax[i] *= SQRT_RATIO;
   }
   
-  // transpose the A matrix and store it
-  // first, store "A" in "cs" format
+  /* transpose the A matrix and store it
+   * first, store "A" in "cs" format
+   */
   A = PDOS_calloc(1, sizeof(cs));
   A->m = w->m ;
   A->n = w->n ;
   A->nzmax = MAX (Anz, 1) ;
-  A->nz = -1 ; // in compressed column form
+  A->nz = -1 ; /* in compressed column form */
   A->p = w->Ap;
   A->i = w->Ai;
   A->x = w->Ax;
 
-  // now transpose
+  /* now transpose */
   At = cs_transpose(A, 1);
 
   w->Atx = At->x;
   w->Ati = At->i;
   w->Atp = At->p;
-  PDOS_free(At);  // "orphans" At->x, At->i, At->p, but they have been handed
-                  // off to w->Atx, w->Ati, and w->Atp
+  PDOS_free(At);  /* "orphans" At->x, At->i, At->p, but they have been handed
+                   * off to w->Atx, w->Ati, and w->Atp
+                   */
   PDOS_free(A);
 
   return w;

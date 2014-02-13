@@ -1,7 +1,7 @@
 #include "util.h"
 
 
-#if (defined WIN32 || _WIN64)
+#if (defined WIN32 || _WIN64 || defined _WINDLL)
 
 void tic(timer* t)
 {
@@ -108,8 +108,8 @@ void printData(const Data * d){
 	PDOS_printf("d->CG_MAX_ITS is %li\n",d->p->CG_MAX_ITS);
   PDOS_printf("d->ALPH is %6f\n",d->p->ALPHA);
   PDOS_printf("d->EPS_ABS is %6f\n",d->p->EPS_ABS);
-  //PDOS_printf("d->EPS_ABS is %6f\n",d->EPS_ABS);
-  //PDOS_printf("d->UNDET_TOL is %6f\n",d->UNDET_TOL);
+  /*PDOS_printf("d->EPS_ABS is %6f\n",d->EPS_ABS);*/
+  /*PDOS_printf("d->UNDET_TOL is %6f\n",d->UNDET_TOL);*/
   PDOS_printf("d->CG_TOL is %6f\n",d->p->CG_TOL);
   PDOS_printf("d->Ap[0] is %li\n",d->Ap[0]);
   PDOS_printf("d->Ap[1] is %li\n",d->Ap[1]);
@@ -124,8 +124,8 @@ void printData(const Data * d){
 	PDOS_printf("d->CG_MAX_ITS is %i\n",d->p->CG_MAX_ITS);
   PDOS_printf("d->ALPH is %6f\n",d->p->ALPHA);
   PDOS_printf("d->EPS_ABS is %6f\n",d->p->EPS_ABS);
-  //PDOS_printf("d->EPS_ABS is %6f\n",d->EPS_ABS);
-  //PDOS_printf("d->UNDET_TOL is %6f\n",d->UNDET_TOL);
+  /*PDOS_printf("d->EPS_ABS is %6f\n",d->EPS_ABS);*/
+  /*PDOS_printf("d->UNDET_TOL is %6f\n",d->UNDET_TOL);*/
   PDOS_printf("d->CG_TOL is %6f\n",d->p->CG_TOL);
   PDOS_printf("d->Ap[0] is %i\n",d->Ap[0]);
   PDOS_printf("d->Ap[1] is %i\n",d->Ap[1]);

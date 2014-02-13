@@ -3,10 +3,10 @@
 #include <assert.h>
 #endif
 
-// define "zero" threshold
+/* define "zero" threshold */
 static const double ZERO = 1e-8;
 
-// constants and data structures
+/* constants and data structures */
 static const char* HEADER[] = {
   " iter",
   " ||Ax+s-b||",
@@ -15,15 +15,13 @@ static const char* HEADER[] = {
   "   -b'y    ",
   "    eta   "
 };
-// static const idxint LENS[] = {
-//   4, 14, 11, 18, 11, 8, 9, 3
-// }
+
 static const idxint HEADER_LEN = 6;
 
-// problem state
+/* problem state */
 enum { SOLVED = 0, INDETERMINATE };
 
-// to hold residual information
+/* to hold residual information */
 struct resid {
   double p_res;
   double d_res;
@@ -33,10 +31,10 @@ struct resid {
   double eps_gap;
 };
 
-// forward declare __inline declarations
+/* forward declare __inline declarations */
 static __inline void relax(Work * w);
 static __inline void updateDualVars(Work * w);
-//static __inline void adaptRhoAndSigma(Work * w, const idxint i);
+/* static __inline void adaptRhoAndSigma(Work * w, const idxint i); */
 
 static __inline void prepZVariable(Work *w);
 static __inline void projectCones(Work * w,const Cone * k);
@@ -65,17 +63,16 @@ Sol * pdos(const Data * d, const Cone * k)
   }
 
 #ifndef NDEBUG
-  // ensure that cone sizes match data size
+  /* ensure that cone sizes match data size */
   for (i = 0; i < k->qsize; ++i) {
     cone_sz += k->q[i];
   }
   assert( d->m == cone_sz + k->f + k->l );
 #endif
 
-  // set the parameters
+  /* set the parameters */
   p = d->p;
-  // set the denominators of DIMACS error measures (i.e., relative scale of
-  // error)
+  /* set the denominators of DIMACS error measures (i.e., relative scale of error) */
   pscale = (1.0 + calcNorm(d->b, d->m));
   dscale = (1.0 + calcNorm(d->c, d->n));
 
@@ -84,7 +81,7 @@ Sol * pdos(const Data * d, const Cone * k)
     PDOS_printf("       (c) E. Chu, B. O'Donoghue, N. Parikh, S. Boyd, Stanford University, 2012-13.\n\n");
   }
 
-  // initialize workspace, allocates memory for necessary computations
+  /* initialize workspace, allocates memory for necessary computations */
   w = initWork(d, k);
 
   if(p->VERBOSE) {
@@ -101,7 +98,7 @@ Sol * pdos(const Data * d, const Cone * k)
     residuals.d_obj = calcDualObj(w);
     residuals.eta = fabs(residuals.p_obj - residuals.d_obj);
     
-    // check against DIMACS error measures
+    /* check against DIMACS error measures */
     if (residuals.p_res < p->EPS_ABS * pscale &&
         residuals.d_res < p->EPS_ABS * dscale &&
         residuals.eta < p->EPS_ABS * (1.0 + fabs(residuals.p_obj) + fabs(residuals.d_obj))) {
@@ -110,15 +107,15 @@ Sol * pdos(const Data * d, const Cone * k)
     }
 		if (p->VERBOSE && i % 10 == 0) printSummary(i, &residuals);
     
-    // Pi_P
+    /* Pi_P */
 	  projectLinSys(w);
 
     /* overrelaxation */
     relax(w);
 
-    // Pi_K
+    /* Pi_K */
     projectCones(w,k);
-    // y += (1.0/lambda)*(s - stilde)
+    /* y += (1.0/lambda)*(s - stilde) */
     updateDualVars(w);
 	}
 	sol = PDOS_malloc(sizeof(Sol));
@@ -129,7 +126,7 @@ Sol * pdos(const Data * d, const Cone * k)
     PDOS_printf("Total solve time is %4.8fs\n", tocq(&PDOS_timer));
 	}
 
-  // free the temporary workspace
+  /* free the temporary workspace */
   freeWork(&w);
 	return sol;
 }
@@ -159,8 +156,8 @@ void freeSol(Sol **sol){
     if((*sol)->x) PDOS_free((*sol)->x);
     if((*sol)->y) PDOS_free((*sol)->y);
     if((*sol)->s) PDOS_free((*sol)->s);
-    // done automatically
-    // if(sol->status) PDOS_free(sol->status);
+    /* done automatically */
+    /* if(sol->status) PDOS_free(sol->status); */
     PDOS_free(*sol);
   }
   *sol = NULL;
@@ -169,7 +166,7 @@ void freeSol(Sol **sol){
 static __inline void freeWork(Work **w){
   idxint i;
   if(*w) {
-    // undo the scalings which may have touched data
+    /* undo the scalings which may have touched data */
     if(!(*w)->params->NORMALIZE) {
       for( i=0; i < (*w)->n; ++i ) {
         (*w)->c[i] /= SQRT_RATIO;
@@ -180,11 +177,11 @@ static __inline void freeWork(Work **w){
     }
     
     freePriv(*w);
-    if((*w)->x) PDOS_free((*w)->x); // also frees w->stilde
+    if((*w)->x) PDOS_free((*w)->x); /* also frees w->stilde */
     (*w)->stilde = NULL;
     if((*w)->s) PDOS_free((*w)->s);
     if((*w)->y) PDOS_free((*w)->y);
-    if((*w)->params->NORMALIZE) { // if normalized, we have new memory
+    if((*w)->params->NORMALIZE) { /* if normalized, we have new memory */
       if((*w)->Ax) PDOS_free((*w)->Ax);
       if((*w)->b) PDOS_free((*w)->b);
       if((*w)->c) PDOS_free((*w)->c);
@@ -233,7 +230,7 @@ static __inline void printSol(const Sol * sol){
 }
 
 static __inline void updateDualVars(Work * w){
-  // y = y + (1/lambda)*(s - stilde)
+  /* y = y + (1/lambda)*(s - stilde) */
   idxint i;
   for(i = 0; i < w->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i])/w->lambda; }
 }
@@ -244,7 +241,7 @@ static __inline void prepZVariable(Work *w){
 }
 
 static __inline void projectCones(Work * w,const Cone * k){
-  // s = stilde - lambda*y
+  /* s = stilde - lambda*y */
   prepZVariable(w);
 
 	/* s onto K */
@@ -266,7 +263,7 @@ static __inline void sety(const Work * w, Sol * sol){
   sol->m = w->m;
 	sol->y = PDOS_malloc(sizeof(double)*w->m);
 
-  // y = D*y (scale the variable)
+  /* y = D*y (scale the variable) */
   for(i = 0; i < w->m; ++i) {
     sol->y[i] = w->D[i] * w->y[i];
   }
@@ -278,7 +275,7 @@ static __inline void setx(const Work * w, Sol * sol){
   sol->n = w->n;
 	sol->x = PDOS_malloc(sizeof(double)*w->n);
 
-  // x = E*x (scale the variable)
+  /* x = E*x (scale the variable) */
   for(i = 0; i < w->n; ++i) {
     sol->x[i] = w->E[i] * w->x[i];
   }
@@ -290,14 +287,14 @@ static __inline void sets(const Work * w, Sol * sol){
   sol->m = w->m;
 	sol->s = PDOS_malloc(sizeof(double)*w->m);
 
-  // s = D^{-1}*s (scale the variable)
+  /* s = D^{-1}*s (scale the variable) */
   for(i = 0; i < w->m; ++i) {
     sol->s[i] = w->s[i] / w->D[i];
   }
 }
 
 static __inline void relax(Work * w){
-  // stilde = alpha*stilde + (1 - alpha)*s
+  /* stilde = alpha*stilde + (1 - alpha)*s */
 	idxint j;
   const double ALPHA = w->params->ALPHA;
 	for(j=0; j < w->m; ++j){

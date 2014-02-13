@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// timing code courtesty of A. Domahidi
+/* timing code courtesty of A. Domahidi */
 #if (defined WIN32 || defined _WIN64 || defined _WINDLL)
 
 /* Use Windows QueryPerformanceCounter for timing */

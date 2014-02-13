@@ -53,7 +53,7 @@ void read_in_data(FILE * fp, Data ** d, Cone ** k){
   fread(&((*d)->p->CG_MAX_ITS), sizeof(idxint), 1, fp);
   fread(&((*d)->p->ALPHA), sizeof(double), 1, fp);
   fread(&((*d)->p->EPS_ABS), sizeof(double), 1, fp);
-  //fscanf(fp, READ_FLOAT, &((*d)->p->EPS_REL));
+  /* fscanf(fp, READ_FLOAT, &((*d)->p->EPS_REL)); */
   fread(&((*d)->p->CG_TOL), sizeof(double), 1, fp);
   fread(&((*d)->p->VERBOSE), sizeof(idxint), 1, fp);
   fread(&((*d)->p->NORMALIZE), sizeof(idxint), 1, fp);

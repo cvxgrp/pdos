@@ -12,8 +12,8 @@ static __inline void projSelfDualCone(double *x, const Cone * k)
   {
     if(x[i] < 0.0) x[i] = 0.0;
     
-    // sometimes, ternary operator is optimized by compiler
-    //x[i] = (x[i] < 0.0) ? 0.0 : x[i];
+    /* sometimes, ternary operator is optimized by compiler */
+    /*x[i] = (x[i] < 0.0) ? 0.0 : x[i]; */
   }
   count = k->l+k->f;
   
@@ -43,21 +43,21 @@ static __inline void projSelfDualCone(double *x, const Cone * k)
     count += k->q[i];
     
     /* project onto OTHER cones */
-    // if you want to handle other cones, they might go here
+    /* if you want to handle other cones, they might go here */
   }
 }
 
 void projCone(double *x, const Cone *k)
 {
   /* project zeros on zero cone */
-  // "s" corresponding to free variables should be set to 0
+  /* "s" corresponding to free variables should be set to 0 */
   memset(x,0,sizeof(double)*k->f);
-  // project the rest of x onto remaining cones (which are self-dual)
+  /* project the rest of x onto remaining cones (which are self-dual) */
   projSelfDualCone(x,k);
 }
 
-// void projDualCone(double *x, Cone *k)
-// {
-//   projSelfDualCone(x, k);
-// }
-
+/* void projDualCone(double *x, Cone *k)
+ * {
+ *   projSelfDualCone(x, k);
+ * }
+ */
