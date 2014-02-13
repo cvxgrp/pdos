@@ -73,7 +73,6 @@ typedef struct WORK {
 
 
 #include <string.h>
-#include <sys/time.h>
 #include <math.h>
 #include "cones.h"
 #include "util.h"

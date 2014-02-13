@@ -34,20 +34,20 @@ struct resid {
 };
 
 // forward declare inline declarations
-static inline void relax(Work * w);
-static inline void updateDualVars(Work * w);
-//static inline void adaptRhoAndSigma(Work * w, const idxint i);
+static INLINE void relax(Work * w);
+static INLINE void updateDualVars(Work * w);
+//static INLINE void adaptRhoAndSigma(Work * w, const idxint i);
 
-static inline void prepZVariable(Work *w);
-static inline void projectCones(Work * w,const Cone * k);
-static inline void sety(const Work * w, Sol * sol);
-static inline void sets(const Work * w, Sol * sol);
-static inline void setx(const Work * w, Sol * sol);
-static inline void getSolution(const Work * w, Sol * sol, idxint solver_state);
-static inline void printSummary(idxint i, struct resid *r);
-static inline void printHeader();
-static inline void printSol(const Sol * sol);
-static inline void freeWork(Work ** w);
+static INLINE void prepZVariable(Work *w);
+static INLINE void projectCones(Work * w,const Cone * k);
+static INLINE void sety(const Work * w, Sol * sol);
+static INLINE void sets(const Work * w, Sol * sol);
+static INLINE void setx(const Work * w, Sol * sol);
+static INLINE void getSolution(const Work * w, Sol * sol, idxint solver_state);
+static INLINE void printSummary(idxint i, struct resid *r);
+static INLINE void printHeader();
+static INLINE void printSol(const Sol * sol);
+static INLINE void freeWork(Work ** w);
 
 Sol * pdos(const Data * d, const Cone * k)
 {
@@ -162,7 +162,7 @@ void freeSol(Sol **sol){
   *sol = NULL;
 }
 
-static inline void freeWork(Work **w){
+static INLINE void freeWork(Work **w){
   idxint i;
   if(*w) {
     // undo the scalings which may have touched data
@@ -196,7 +196,7 @@ static inline void freeWork(Work **w){
   *w = NULL;
 }
 
-static inline void printSol(const Sol * sol){
+static INLINE void printSol(const Sol * sol){
 	idxint i;
 	PDOS_printf("%s\n",sol->status);
 	if (sol->x != NULL){
@@ -228,18 +228,18 @@ static inline void printSol(const Sol * sol){
 	}
 }
 
-static inline void updateDualVars(Work * w){
+static INLINE void updateDualVars(Work * w){
   // y = y + (1/lambda)*(s - stilde)
   idxint i;
   for(i = 0; i < w->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i])/w->lambda; }
 }
 
-static inline void prepZVariable(Work *w){
+static INLINE void prepZVariable(Work *w){
   idxint i;
   for(i = 0; i < w->m; ++i) { w->s[i] = w->stilde[i] - w->lambda*w->y[i]; }
 }
 
-static inline void projectCones(Work * w,const Cone * k){
+static INLINE void projectCones(Work * w,const Cone * k){
   // s = stilde - lambda*y
   prepZVariable(w);
 
@@ -247,7 +247,7 @@ static inline void projectCones(Work * w,const Cone * k){
 	projCone(w->s, k);
 }
 
-static inline void getSolution(const Work * w, Sol * sol, idxint solver_state){
+static INLINE void getSolution(const Work * w, Sol * sol, idxint solver_state){
   setx(w,sol);
   sety(w,sol);
   sets(w,sol);
@@ -257,7 +257,7 @@ static inline void getSolution(const Work * w, Sol * sol, idxint solver_state){
   }
 }
 
-static inline void sety(const Work * w, Sol * sol){
+static INLINE void sety(const Work * w, Sol * sol){
   sol->m = w->m;
 	sol->y = PDOS_malloc(sizeof(double)*w->m);
 
@@ -268,7 +268,7 @@ static inline void sety(const Work * w, Sol * sol){
   }
 }
 
-static inline void setx(const Work * w, Sol * sol){
+static INLINE void setx(const Work * w, Sol * sol){
   sol->n = w->n;
 	sol->x = PDOS_malloc(sizeof(double)*w->n);
 
@@ -279,7 +279,7 @@ static inline void setx(const Work * w, Sol * sol){
   }
 }
 
-static inline void sets(const Work * w, Sol * sol){
+static INLINE void sets(const Work * w, Sol * sol){
   sol->m = w->m;
 	sol->s = PDOS_malloc(sizeof(double)*w->m);
 
@@ -290,7 +290,7 @@ static inline void sets(const Work * w, Sol * sol){
   }
 }
 
-static inline void relax(Work * w){
+static INLINE void relax(Work * w){
   // stilde = alpha*stilde + (1 - alpha)*s
 	idxint j;
   const double ALPHA = w->params->ALPHA;
@@ -300,7 +300,7 @@ static inline void relax(Work * w){
 }
 
 
-static inline void printSummary(idxint i, struct resid *r){
+static INLINE void printSummary(idxint i, struct resid *r){
 #ifdef DLONG
   PDOS_printf("%*li | ", (int)strlen(HEADER[0]), i);
 #else
@@ -313,7 +313,7 @@ static inline void printSummary(idxint i, struct resid *r){
   PDOS_printf("%*.3e   \n", (int)strlen(HEADER[5]), r->eta);
 }
 
-static inline void printHeader() {
+static INLINE void printHeader() {
   idxint i, line_len;
   line_len = 0;
   for(i = 0; i < HEADER_LEN - 1; ++i) {

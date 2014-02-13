@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 // timing code courtesty of A. Domahidi
-#if (defined WIN32 || defined _WIN64)
+#if (defined WIN32 || defined _WIN64 || defined _WINDLL)
 
 /* Use Windows QueryPerformanceCounter for timing */
 #include <Windows.h>
@@ -17,6 +17,7 @@ typedef struct timer{
 	LARGE_INTEGER freq;
 } timer;
 
+#define INLINE __inline
 
 #elif (defined __APPLE__)
 
@@ -29,6 +30,8 @@ typedef struct timer{
 	mach_timebase_info_data_t tinfo;
 } timer;
 
+#define INLINE inline
+
 #else
 
 /* Use POSIX clocl_gettime() for timing on non-Windows machines */
@@ -38,6 +41,8 @@ typedef struct timer{
 	struct timespec tic;
 	struct timespec toc;
 } timer;
+
+#define INLINE inline
 
 #endif
 
