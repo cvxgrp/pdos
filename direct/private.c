@@ -12,7 +12,7 @@ void freePriv(Work * w){
   PDOS_free(w->p);
 }
 
-static inline void prepArgument(Work *w) {
+static __inline void prepArgument(Work *w) {
   // uses the x and stilde memory space to store the argument, since we don't
   // need that memory space anymore
 
@@ -29,6 +29,8 @@ static inline void prepArgument(Work *w) {
 }
 
 void projectLinSys(Work * w){
+  idxint i = 0;
+
   // this preps the argument (-(x-lambda*c), b - (s+lambda*y)) for LDL solve
   // (puts it in w->x)
   prepArgument(w);
@@ -44,7 +46,6 @@ void projectLinSys(Work * w){
   * to the solution.
   */
   // stilde = b - A*x
-  static idxint i = 0;
   for (i = 0; i < w->m; i++) {
    // set stilde = (b + (s + lambda*y))
    w->stilde[i] += (w->s[i] + w->lambda*w->y[i]);
@@ -77,11 +78,13 @@ cs * formKKT(Work * w){
    *
    * forms upper triangular part of [-I A'; A I]
    */
-   idxint j, k, kk;
+  idxint j, k, kk;
   /* -I at top left */
   const idxint Anz = w->Ap[w->n];
   const idxint Knzmax = w->m + w->n + Anz;
   cs * K = cs_spalloc(w->m + w->n, w->m + w->n, Knzmax, 1, 1);
+  cs * K_cs = NULL;
+
   kk = 0;
   for (k = 0; k < w->n; k++){
     K->i[kk] = k;
@@ -101,27 +104,31 @@ cs * formKKT(Work * w){
   }
   /* I at bottom right */
   for (k = 0; k < w->m; k++){
-	K->i[kk] = k + w->n;
-	K->p[kk] = k + w->n;
-	K->x[kk] = 1;
+    K->i[kk] = k + w->n;
+    K->p[kk] = k + w->n;
+    K->x[kk] = 1;
     kk++;
   }
   // assert kk == Knzmax
   K->nz = Knzmax;
-  cs * K_cs = cs_compress(K);
+  K_cs = cs_compress(K);
   cs_spfree(K);
   return(K_cs);
 }
 
 void factorize(Work * w){
+  cs * K = NULL;
   static timer KKT_timer;
+  double *info;
+  idxint * Pinv;
+  cs * C;
+
   tic(&KKT_timer);
 
-  cs * K = formKKT(w);
+  K = formKKT(w);
 #ifdef PRINTKKT
   if(w->params->VERBOSE) PDOS_printf("Factorization info:\n");
 #endif
-  double *info;
   choleskyInit(K, w->p->P, &info);
 
   // perform ordering
@@ -136,10 +143,10 @@ void factorize(Work * w){
 #endif
 
   // compute the inverse permutation
-  idxint * Pinv = cs_pinv(w->p->P, w->m+w->n);
+  Pinv = cs_pinv(w->p->P, w->m+w->n);
 
   // permute the KKT matrix
-  cs * C = cs_symperm(K, Pinv, 1);
+  C = cs_symperm(K, Pinv, 1);
 
   // perform the LDL factorization
   choleskyFactor(C, NULL, NULL, &w->p->L, &w->p->D);
@@ -160,12 +167,13 @@ void choleskyInit(const cs * A, idxint P[], double **info) {
 
 void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs **L , double **D)
 {
-  (*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
   idxint *Parent = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   idxint *Lnz = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   idxint *Flag = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   idxint *Pattern = (idxint *) PDOS_malloc(A->n * sizeof(idxint));
   double *Y = (double *) PDOS_malloc(A->n * sizeof(double));
+
+  (*L)->p = (idxint *) PDOS_malloc((1 + A->n) * sizeof(idxint));
 
 #ifdef LDL_LONG
 	ldl_l_symbolic(A->n, A->p, A->i, (*L)->p, Parent, Lnz, Flag, P, Pinv);
@@ -206,7 +214,7 @@ void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[])
 		ldl_ltsolve(L->n, x, L->p, L->i, L->x);
 #endif
 	} else {
-  	double bp1[L->n];
+  	double *bp1 = malloc(L->n * sizeof(double));
 
 #ifdef LDL_LONG
     // do the solve
@@ -223,5 +231,6 @@ void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[])
 		ldl_ltsolve(L->n, bp1, L->p, L->i, L->x);
 		ldl_permt(L->n, x, bp1, P);
 #endif
+    free(bp1);
 	}
 }

@@ -33,35 +33,39 @@ struct resid {
   double eps_gap;
 };
 
-// forward declare inline declarations
-static INLINE void relax(Work * w);
-static INLINE void updateDualVars(Work * w);
-//static INLINE void adaptRhoAndSigma(Work * w, const idxint i);
+// forward declare __inline declarations
+static __inline void relax(Work * w);
+static __inline void updateDualVars(Work * w);
+//static __inline void adaptRhoAndSigma(Work * w, const idxint i);
 
-static INLINE void prepZVariable(Work *w);
-static INLINE void projectCones(Work * w,const Cone * k);
-static INLINE void sety(const Work * w, Sol * sol);
-static INLINE void sets(const Work * w, Sol * sol);
-static INLINE void setx(const Work * w, Sol * sol);
-static INLINE void getSolution(const Work * w, Sol * sol, idxint solver_state);
-static INLINE void printSummary(idxint i, struct resid *r);
-static INLINE void printHeader();
-static INLINE void printSol(const Sol * sol);
-static INLINE void freeWork(Work ** w);
+static __inline void prepZVariable(Work *w);
+static __inline void projectCones(Work * w,const Cone * k);
+static __inline void sety(const Work * w, Sol * sol);
+static __inline void sets(const Work * w, Sol * sol);
+static __inline void setx(const Work * w, Sol * sol);
+static __inline void getSolution(const Work * w, Sol * sol, idxint solver_state);
+static __inline void printSummary(idxint i, struct resid *r);
+static __inline void printHeader();
+static __inline void printSol(const Sol * sol);
+static __inline void freeWork(Work ** w);
 
 Sol * pdos(const Data * d, const Cone * k)
 {
   static timer PDOS_timer;
+  idxint i, STATE = INDETERMINATE;
+  struct resid residuals = { -1, -1, -1, -1, -1 };
+  Params *p; Work *w; Sol *sol;
+  double pscale, dscale;
+#ifndef NDEBUG
+  idxint cone_sz = 0;
+  #endif
 
   if(d == NULL || k == NULL) {
     return NULL;
   }
-  idxint i, STATE = INDETERMINATE;
-  struct resid residuals = { -1, -1, -1, -1, -1 };
 
 #ifndef NDEBUG
   // ensure that cone sizes match data size
-  idxint cone_sz = 0;
   for (i = 0; i < k->qsize; ++i) {
     cone_sz += k->q[i];
   }
@@ -69,11 +73,11 @@ Sol * pdos(const Data * d, const Cone * k)
 #endif
 
   // set the parameters
-  Params *p = d->p;
+  p = d->p;
   // set the denominators of DIMACS error measures (i.e., relative scale of
   // error)
-  const double pscale = (1.0 + calcNorm(d->b, d->m));
-  const double dscale = (1.0 + calcNorm(d->c, d->n));
+  pscale = (1.0 + calcNorm(d->b, d->m));
+  dscale = (1.0 + calcNorm(d->c, d->n));
 
   if(p->VERBOSE) {
     PDOS_printf("\nPDOS - A Primal-Dual Operator Splitting for Cone Programming.\n");
@@ -81,7 +85,7 @@ Sol * pdos(const Data * d, const Cone * k)
   }
 
   // initialize workspace, allocates memory for necessary computations
-  Work * w = initWork(d, k);
+  w = initWork(d, k);
 
   if(p->VERBOSE) {
     PDOS_printf("lambda: %5.3e\n\n", w->lambda);
@@ -117,7 +121,7 @@ Sol * pdos(const Data * d, const Cone * k)
     // y += (1.0/lambda)*(s - stilde)
     updateDualVars(w);
 	}
-	Sol * sol = PDOS_malloc(sizeof(Sol));
+	sol = PDOS_malloc(sizeof(Sol));
 	getSolution(w,sol,STATE);
 
 	if(p->VERBOSE) {
@@ -162,7 +166,7 @@ void freeSol(Sol **sol){
   *sol = NULL;
 }
 
-static INLINE void freeWork(Work **w){
+static __inline void freeWork(Work **w){
   idxint i;
   if(*w) {
     // undo the scalings which may have touched data
@@ -196,7 +200,7 @@ static INLINE void freeWork(Work **w){
   *w = NULL;
 }
 
-static INLINE void printSol(const Sol * sol){
+static __inline void printSol(const Sol * sol){
 	idxint i;
 	PDOS_printf("%s\n",sol->status);
 	if (sol->x != NULL){
@@ -228,18 +232,18 @@ static INLINE void printSol(const Sol * sol){
 	}
 }
 
-static INLINE void updateDualVars(Work * w){
+static __inline void updateDualVars(Work * w){
   // y = y + (1/lambda)*(s - stilde)
   idxint i;
   for(i = 0; i < w->m; ++i) { w->y[i] += (w->s[i] - w->stilde[i])/w->lambda; }
 }
 
-static INLINE void prepZVariable(Work *w){
+static __inline void prepZVariable(Work *w){
   idxint i;
   for(i = 0; i < w->m; ++i) { w->s[i] = w->stilde[i] - w->lambda*w->y[i]; }
 }
 
-static INLINE void projectCones(Work * w,const Cone * k){
+static __inline void projectCones(Work * w,const Cone * k){
   // s = stilde - lambda*y
   prepZVariable(w);
 
@@ -247,7 +251,7 @@ static INLINE void projectCones(Work * w,const Cone * k){
 	projCone(w->s, k);
 }
 
-static INLINE void getSolution(const Work * w, Sol * sol, idxint solver_state){
+static __inline void getSolution(const Work * w, Sol * sol, idxint solver_state){
   setx(w,sol);
   sety(w,sol);
   sets(w,sol);
@@ -257,40 +261,42 @@ static INLINE void getSolution(const Work * w, Sol * sol, idxint solver_state){
   }
 }
 
-static INLINE void sety(const Work * w, Sol * sol){
+static __inline void sety(const Work * w, Sol * sol){
+  idxint i;
   sol->m = w->m;
 	sol->y = PDOS_malloc(sizeof(double)*w->m);
 
   // y = D*y (scale the variable)
-  idxint i;
   for(i = 0; i < w->m; ++i) {
     sol->y[i] = w->D[i] * w->y[i];
   }
 }
 
-static INLINE void setx(const Work * w, Sol * sol){
+static __inline void setx(const Work * w, Sol * sol){
+  idxint i;
+
   sol->n = w->n;
 	sol->x = PDOS_malloc(sizeof(double)*w->n);
 
   // x = E*x (scale the variable)
-  idxint i;
   for(i = 0; i < w->n; ++i) {
     sol->x[i] = w->E[i] * w->x[i];
   }
 }
 
-static INLINE void sets(const Work * w, Sol * sol){
+static __inline void sets(const Work * w, Sol * sol){
+  idxint i;
+
   sol->m = w->m;
 	sol->s = PDOS_malloc(sizeof(double)*w->m);
 
   // s = D^{-1}*s (scale the variable)
-  idxint i;
   for(i = 0; i < w->m; ++i) {
     sol->s[i] = w->s[i] / w->D[i];
   }
 }
 
-static INLINE void relax(Work * w){
+static __inline void relax(Work * w){
   // stilde = alpha*stilde + (1 - alpha)*s
 	idxint j;
   const double ALPHA = w->params->ALPHA;
@@ -300,7 +306,7 @@ static INLINE void relax(Work * w){
 }
 
 
-static INLINE void printSummary(idxint i, struct resid *r){
+static __inline void printSummary(idxint i, struct resid *r){
 #ifdef DLONG
   PDOS_printf("%*li | ", (int)strlen(HEADER[0]), i);
 #else
@@ -313,7 +319,7 @@ static INLINE void printSummary(idxint i, struct resid *r){
   PDOS_printf("%*.3e   \n", (int)strlen(HEADER[5]), r->eta);
 }
 
-static INLINE void printHeader() {
+static __inline void printHeader() {
   idxint i, line_len;
   line_len = 0;
   for(i = 0; i < HEADER_LEN - 1; ++i) {

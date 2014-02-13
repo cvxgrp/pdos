@@ -32,11 +32,13 @@
  *
  */
 
-static inline Work *commonWorkInit(const Data *d, const Cone *k) {
+static __inline Work *commonWorkInit(const Data *d, const Cone *k) {
   idxint i,j = 0;
   idxint Anz = d->Ap[d->n];
-
+  cs * A = NULL;
+  cs *At = NULL;
   Work * w = PDOS_malloc(sizeof(Work));
+
   // copy dimensions
   w->m = d->m; w->n = d->n;
   // copy parameters (pointer)
@@ -65,6 +67,9 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   w->E = PDOS_calloc(d->n, sizeof(double));
 
   if(d->p->NORMALIZE) {
+    idxint ind, cone;
+    double sum = 0;
+
     w->Ax = PDOS_calloc(Anz, sizeof(double));
     w->Ai = d->Ai;
     w->Ap = d->Ap;
@@ -80,7 +85,6 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     // set w->b = d->b
     memcpy(w->b, d->b, d->m*sizeof(double));
 
-    idxint ind, cone;
     // compute norm across rows
     for(i = 0; i < d->n; ++i) { // cols
       for(j = d->Ap[i]; j < d->Ap[i+1]; ++j) {
@@ -89,7 +93,6 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     }
     // now collapse cones together by taking average norm square
     ind = k->f + k->l;
-    double sum = 0;
     for(cone = 0; cone < k->qsize; ++cone) {
       sum = 0;
       for(i = 0; i < k->q[cone]; ++i) {
@@ -158,6 +161,8 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     }
 
   } else {
+    idxint i;
+
     // if we don't normalize, we just point out workspace copy to the actual
     // data copies of the problem data
     w->Ax = d->Ax;
@@ -166,7 +171,6 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
     w->b = d->b;
     w->c = d->c;
 
-    idxint i;
 
     // set the scaling matrices to the identity
     for( i=0; i < d->m; ++i ) w->D[i] = 1.0;
@@ -188,7 +192,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   
   // transpose the A matrix and store it
   // first, store "A" in "cs" format
-  cs * A = PDOS_calloc(1, sizeof(cs));
+  A = PDOS_calloc(1, sizeof(cs));
   A->m = w->m ;
   A->n = w->n ;
   A->nzmax = MAX (Anz, 1) ;
@@ -198,7 +202,7 @@ static inline Work *commonWorkInit(const Data *d, const Cone *k) {
   A->x = w->Ax;
 
   // now transpose
-  cs * At = cs_transpose(A, 1);
+  At = cs_transpose(A, 1);
 
   w->Atx = At->x;
   w->Ati = At->i;

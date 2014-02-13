@@ -7,18 +7,20 @@
 static timer PDOS_timer;
 
 int main(int argc, char **argv)
-{
-  tic(&PDOS_timer);
+{  
   FILE * fp;
+  Cone *k; Data *d; Sol *sol;
+
+  tic(&PDOS_timer);
   if(open_file(argc, argv, 1, DEMO_PATH, &fp)==-1) return -1;
-  Cone * k = malloc(sizeof(Cone));
-  Data * d = malloc(sizeof(Data));
+  k = malloc(sizeof(Cone));
+  d = malloc(sizeof(Data));
   read_in_data(fp,&d,&k);
   fclose(fp);
   printf("File IO %4f seconds\n",tocq(&PDOS_timer));
 
   tic(&PDOS_timer);
-  Sol * sol = pdos(d,k);
+  sol = pdos(d,k);
   printf("Total factorize + solve time %4f seconds\n",tocq(&PDOS_timer));
 
   freeData(&d,&k);
@@ -27,6 +29,8 @@ int main(int argc, char **argv)
 }
 
 void read_in_data(FILE * fp, Data ** d, Cone ** k){
+  idxint Anz;
+
 	/* MATRIX IN DATA FILE MUST BE IN COLUMN COMPRESSED FORMAT */
   (*d)->p = malloc(sizeof(Params));
 
@@ -54,7 +58,6 @@ void read_in_data(FILE * fp, Data ** d, Cone ** k){
   fread(&((*d)->p->VERBOSE), sizeof(idxint), 1, fp);
   fread(&((*d)->p->NORMALIZE), sizeof(idxint), 1, fp);
 
-  idxint Anz;
   fread(&Anz, sizeof(idxint), 1, fp);
 
   (*d)->Ai = malloc(sizeof(idxint)*Anz);

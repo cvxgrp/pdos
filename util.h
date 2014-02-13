@@ -17,8 +17,6 @@ typedef struct timer{
 	LARGE_INTEGER freq;
 } timer;
 
-#define INLINE __inline
-
 #elif (defined __APPLE__)
 
 #include <mach/mach_time.h>
@@ -30,7 +28,6 @@ typedef struct timer{
 	mach_timebase_info_data_t tinfo;
 } timer;
 
-#define INLINE inline
 
 #else
 
@@ -41,8 +38,6 @@ typedef struct timer{
 	struct timespec tic;
 	struct timespec toc;
 } timer;
-
-#define INLINE inline
 
 #endif
 

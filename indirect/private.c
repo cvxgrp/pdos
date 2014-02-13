@@ -17,7 +17,7 @@ void freePriv(Work * w){
   PDOS_free(w->p->p); PDOS_free(w->p->q); PDOS_free(w->p->Ax); PDOS_free(w->p);
 }
 
-static inline void prepArgument(Work *w) {
+static __inline void prepArgument(Work *w) {
   // uses the stilde memory space to store the argument, since we don't need
   // that memory space anymore
   idxint i;
@@ -27,7 +27,7 @@ static inline void prepArgument(Work *w) {
   }
 }
 
-static inline void cgCustom(Work *w){
+static __inline void cgCustom(Work *w){
   // solve (I+A^TA) x = (x^k - lambda c + A^T*(b - s^k - lambda y^k))
   // recall that s^k = b - A*x^k
   const idxint MAX_ITERS = w->params->CG_MAX_ITS;
@@ -49,6 +49,8 @@ static inline void cgCustom(Work *w){
   // inverse of this ratio
   double tol_sq = TOL*TOL;  // XXX: could be a very small number...
 
+  double qsold_sq;
+
   /* q = -lambda * c - A'*(A*x - b + v) */
   memcpy(Ax, s, (w->m)*sizeof(double));
   setAsScaledArray(q,w->c,-w->lambda,w->n);  // q = -c*lambda
@@ -58,7 +60,7 @@ static inline void cgCustom(Work *w){
   // p = q
 	memcpy(p,q,n*sizeof(double));
   // ||q||^2
-	double qsold_sq=calcNormSq(q,n);
+	qsold_sq=calcNormSq(q,n);
   if (qsold_sq > tol_sq) {   // only iterate if the residual is small
   	for (i=0; i< MAX_ITERS; ++i){
       // uses stilde as temp variable
