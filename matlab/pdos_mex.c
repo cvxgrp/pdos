@@ -34,17 +34,40 @@ static idxint getVectorLength(const mxArray *vec, const char *vec_name) {
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   /* matlab usage: pdos(data,cone,params); */
+  const Data *d; 
+  const Cone *k;
+  const Sol *sol;
+
+  const mxArray *data;
+  const mxArray *A_mex;
+  const mxArray *b_mex;
+  const mxArray *c_mex;
+
+  const mxArray *f_mex;
+  const mxArray *l_mex;
+  const mxArray *q_mex;
+  const double *q_mex_vals;
+
+  const mxArray *x0;
+  const mxArray *y0;
+  const mxArray *s0;
+
+  const mxArray *cone;
+  const mxArray *params;
   
   if (nrhs != 3){
     mexErrMsgTxt("Three arguments are required in this order: data struct, cone struct, params struct");
   }
   
-  Data * d = mxMalloc(sizeof(Data)); 
-  Cone * k = mxMalloc(sizeof(Cone));
+  d = mxMalloc(sizeof(Data)); 
+  k = mxMalloc(sizeof(Cone));
   d->p = mxMalloc(sizeof(Params));
-  const mxArray *data = prhs[0];
-   
-  const mxArray *A_mex = (mxArray *) mxGetField(data,0,"A");
+
+  data = prhs[0];
+  cone = prhs[1];
+  params = prhs[2];
+
+  A_mex = (mxArray *) mxGetField(data,0,"A");
   if(A_mex == NULL) {
     mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `A` entry.");
@@ -58,7 +81,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Input matrix A cannot be complex");
   }
   
-  const mxArray *b_mex = (mxArray *) mxGetField(data,0,"b");
+  b_mex = (mxArray *) mxGetField(data,0,"b");
   if(b_mex == NULL) {
     mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `b` entry.");
@@ -72,7 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Input vector b cannot be complex");
   }
   
-  const mxArray *c_mex = (mxArray *) mxGetField(data,0,"c"); 
+  c_mex = (mxArray *) mxGetField(data,0,"c"); 
   if(c_mex == NULL) {
     mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Data struct must contain a `c` entry.");
@@ -86,7 +109,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Input vector c cannot be complex");
   }
   
-  const mxArray *x0 = (mxArray *) mxGetField(data,0,"x0");   
+  x0 = (mxArray *) mxGetField(data,0,"x0");   
   if(x0 != NULL && mxIsSparse(x0)) {
     mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Initial vector x0 must be dense (pass in full(x0))");
@@ -96,7 +119,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Initial vector x0 cannot be complex");
   }
   
-  const mxArray *y0 = (mxArray *) mxGetField(data,0,"y0"); 
+  y0 = (mxArray *) mxGetField(data,0,"y0"); 
   if(y0 != NULL && mxIsSparse(y0)) {
     mxFree(d->p); mxFree(d); mxFree(k);
     mexErrMsgTxt("Initial vector y0 must be dense (pass in full(y0))");
@@ -106,8 +129,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Initial vector y0 cannot be complex");
   }
 
-  
-  const mxArray *s0 = (mxArray *) mxGetField(data,0,"s0"); 
+  s0 = (mxArray *) mxGetField(data,0,"s0"); 
   if(s0 != NULL && mxIsSparse(s0)) {
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Initial vector s0 must be dense (pass in full(s0))");
@@ -116,9 +138,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Initial vector s0 cannot be complex");
   }
-  
-  const mxArray *cone = prhs[1];
-  const mxArray *params = prhs[2];
   
   d->n = getVectorLength(c_mex,"data.c");
   d->m = getVectorLength(b_mex,"data.b");
@@ -141,26 +160,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   d->p->NORMALIZE = (idxint)getParameterField(params, "NORMALIZE", d, k);
 
 
-  const mxArray *f_mex = (mxArray *) mxGetField(cone,0,"f"); 
+  f_mex = (mxArray *) mxGetField(cone,0,"f"); 
   if(f_mex == NULL) {
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Cone struct must contain a `f` entry.");
   }
   k->f = (idxint)*mxGetPr(f_mex);
-  const mxArray *l_mex = (mxArray *) mxGetField(cone,0,"l"); 
+  
+  l_mex = (mxArray *) mxGetField(cone,0,"l"); 
   if(l_mex == NULL) {
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Cone struct must contain a `l` entry.");
   }
   k->l = (idxint)*mxGetPr(l_mex);
   
-  const mxArray *q_mex = (mxArray *) mxGetField(cone,0,"q"); 
+  q_mex = (mxArray *) mxGetField(cone,0,"q"); 
   if(q_mex == NULL) {
     mxFree(d); mxFree(k);
     mexErrMsgTxt("Cone struct must contain a `q` entry.");
   }
   
-  double * q_mex_vals = mxGetPr(q_mex);
+  q_mex_vals = mxGetPr(q_mex);
   k->qsize = getVectorLength(mxGetField(cone,0,"q"), "cone.q");
   idxint i;
   
@@ -169,7 +189,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     k->q[i] = (idxint)q_mex_vals[i]; 
   }
   
-  int Anz = mxGetNzmax(A_mex);
+  /* int Anz = mxGetNzmax(A_mex); */
   d->Ax = (double *)mxGetPr(A_mex);
   d->Ai = (long*)mxGetIr(A_mex);
   d->Ap = (long*)mxGetJc(A_mex);
@@ -177,7 +197,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /* printConeData(d,k); */
   /* printData(d); */
   
-  Sol *sol = pdos(d,k);
+  sol = pdos(d,k);
   
   plhs[0] = mxCreateDoubleMatrix(d->n, 1, mxREAL);
   mxSetPr(plhs[0], sol->x);
