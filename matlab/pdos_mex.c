@@ -34,8 +34,8 @@ static idxint getVectorLength(const mxArray *vec, const char *vec_name) {
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   /* matlab usage: pdos(data,cone,params); */
-  const Data *d; 
-  const Cone *k;
+  Data *d; 
+  Cone *k;
   const Sol *sol;
 
   const mxArray *data;
