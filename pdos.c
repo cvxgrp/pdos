@@ -43,7 +43,7 @@ static __inline void sets(const Work * w, Sol * sol);
 static __inline void setx(const Work * w, Sol * sol);
 static __inline void getSolution(const Work * w, Sol * sol, idxint solver_state);
 static __inline void printSummary(idxint i, struct resid *r);
-static __inline void printHeader();
+static __inline void printHeader(void);
 static __inline void printSol(const Sol * sol);
 static __inline void freeWork(Work ** w);
 
@@ -51,7 +51,7 @@ Sol * pdos(const Data * d, const Cone * k)
 {
   static timer PDOS_timer;
   idxint i, STATE = INDETERMINATE;
-  struct resid residuals = { -1, -1, -1, -1, -1 };
+  struct resid residuals = { -1, -1, -1, -1, -1, -1 };
   Params *p; Work *w; Sol *sol;
   double pscale, dscale;
 #ifndef NDEBUG
@@ -316,7 +316,7 @@ static __inline void printSummary(idxint i, struct resid *r){
   PDOS_printf("%*.3e   \n", (int)strlen(HEADER[5]), r->eta);
 }
 
-static __inline void printHeader() {
+static __inline void printHeader(void) {
   idxint i, line_len;
   line_len = 0;
   for(i = 0; i < HEADER_LEN - 1; ++i) {

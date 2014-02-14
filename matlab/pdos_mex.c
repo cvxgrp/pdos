@@ -29,6 +29,7 @@ static idxint getVectorLength(const mxArray *vec, const char *vec_name) {
   }
   
   mexErrMsgIdAndTxt("PDOS:getVector", "Expected row or column vector `%s`.", vec_name);
+  return 0;
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -54,9 +55,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   const mxArray *cone;
   const mxArray *params;
-  
+
+  idxint i;
+
   if (nrhs != 3){
     mexErrMsgTxt("Three arguments are required in this order: data struct, cone struct, params struct");
+  }
+
+  if (nlhs > 4) {
+    mexErrMsgTxt("PDOS has up to 4 output arguments only.");
   }
   
   d = mxMalloc(sizeof(Data)); 
@@ -182,7 +189,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   q_mex_vals = mxGetPr(q_mex);
   k->qsize = getVectorLength(mxGetField(cone,0,"q"), "cone.q");
-  idxint i;
   
   k->q = mxMalloc(sizeof(idxint)*k->qsize);
   for ( i=0; i < k->qsize; i++ ){

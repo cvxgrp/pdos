@@ -6,6 +6,7 @@ void choleskyInit(const cs * A, idxint P[], double **info);
 void choleskyFactor(const cs * A, idxint P[], idxint Pinv[], cs ** L, double **D);
 void choleskySolve(double *x, double b[], cs * L, double D[], idxint P[]);
 void factorize(Work * w);
+cs *formKKT(Work *w);
 
 void freePriv(Work * w){
   cs_spfree(w->p->L);PDOS_free(w->p->P);PDOS_free(w->p->D);
