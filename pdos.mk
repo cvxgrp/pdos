@@ -4,7 +4,7 @@ CFLAGS = -g -Wall -pedantic -O3 -I. -DDLONG -DLDL_LONG
 LDFLAGS = -lm
 
 ifeq ($(UNAME), Darwin)
-    CFLAGS += -stc=c99
+    CFLAGS += -std=c99
 else
     CFLAGS += -std=gnu99
 endif
